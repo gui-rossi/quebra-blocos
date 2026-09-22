@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://bj0nyhojw0e7r"]
+
+[ext_resource type="Script" uid="uid://bv3dhxs8dtvv3" path="res://managers/grid_manager.gd" id="1_qso2b"]
+
+[node name="GridManager" type="Node2D" unique_id=988220764]
+script = ExtResource("1_qso2b")
+metadata/_edit_group_ = true
+
+[node name="GridCells" type="Node2D" parent="." unique_id=1215742152]

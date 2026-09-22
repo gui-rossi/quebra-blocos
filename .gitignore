@@ -1,0 +1,5 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+.godot/ .import/ export_presets.cfg *.import .DS_Store Thumbs.db

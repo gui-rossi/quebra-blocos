@@ -1,0 +1,25 @@
+[gd_scene format=3 uid="uid://cijkrdckusgyc"]
+
+[ext_resource type="Script" uid="uid://cci5voq51ixuj" path="res://scenes/main.gd" id="1_0wfyh"]
+[ext_resource type="PackedScene" uid="uid://bj0nyhojw0e7r" path="res://managers/grid_manager.tscn" id="2_0wfyh"]
+[ext_resource type="PackedScene" uid="uid://du88s6lh66lsh" path="res://scenes/controls/top_tray.tscn" id="3_jyhfs"]
+[ext_resource type="PackedScene" uid="uid://bn750qxpc3nxi" path="res://scenes/controls/bottom_tray.tscn" id="3_sugp2"]
+
+[node name="Main" type="Node" unique_id=2068484450]
+script = ExtResource("1_0wfyh")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=2114263156]
+
+[node name="ColorRect" type="ColorRect" parent="CanvasLayer" unique_id=1702589235]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(9.62615e-08, 0.19331533, 0.50892246, 0.48235294)
+
+[node name="TopTray" parent="CanvasLayer" unique_id=1736511696 instance=ExtResource("3_jyhfs")]
+
+[node name="GridManager" parent="CanvasLayer" unique_id=988220764 instance=ExtResource("2_0wfyh")]
+
+[node name="BottomTray" parent="CanvasLayer" unique_id=2017416139 instance=ExtResource("3_sugp2")]

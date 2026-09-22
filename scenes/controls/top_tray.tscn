@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://du88s6lh66lsh"]
+
+[node name="TopTray" type="Node2D" unique_id=1736511696]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=284877260]
+layer = 2
+
+[node name="Control" type="Control" parent="CanvasLayer" unique_id=116014223]
+layout_mode = 3
+anchors_preset = 0
+offset_bottom = 119.0
+
+[node name="ColorRect" type="ColorRect" parent="CanvasLayer/Control" unique_id=1194707449]
+layout_mode = 1
+color = Color(0.34043974, 0.26006702, 0.1842097, 1)
