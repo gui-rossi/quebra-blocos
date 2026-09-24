@@ -12,4 +12,9 @@ offset_bottom = 119.0
 
 [node name="ColorRect" type="ColorRect" parent="CanvasLayer/Control" unique_id=1194707449]
 layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 color = Color(0.34043974, 0.26006702, 0.1842097, 1)

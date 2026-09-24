@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://bay8tksb248hi"]
+
+[ext_resource type="Script" uid="uid://cc54b8kh7lxe2" path="res://scenes/controls/randomized_block.gd" id="1_4hp08"]
+
+[sub_resource type="Gradient" id="Gradient_wb4oo"]
+interpolation_color_space = 1
+offsets = PackedFloat32Array(0.66549295, 0.7007042)
+colors = PackedColorArray(0, 0.19215687, 0.50980395, 0.48235294, 0, 0, 0, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_s1fef"]
+gradient = SubResource("Gradient_wb4oo")
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+
+[node name="RandomizedBlock" type="Node2D" unique_id=527154083]
+script = ExtResource("1_4hp08")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1783062339]
+position = Vector2(9.094947e-13, 4.7683716e-07)
+scale = Vector2(5.125, 5.125)
+texture = SubResource("GradientTexture2D_s1fef")
