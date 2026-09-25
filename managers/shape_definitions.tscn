@@ -1,6 +1,0 @@
-[gd_scene format=3 uid="uid://csv3ffy1sram7"]
-
-[ext_resource type="Script" uid="uid://dl1lp4li2ynwk" path="res://managers/shape_definitions.gd" id="1_cuku0"]
-
-[node name="ShapeDefinitions" type="Node" unique_id=1560885282]
-script = ExtResource("1_cuku0")

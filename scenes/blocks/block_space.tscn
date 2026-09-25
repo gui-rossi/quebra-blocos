@@ -2,6 +2,18 @@
 
 [ext_resource type="Script" uid="uid://hrcfv5qy6wkq" path="res://scenes/blocks/block_space.gd" id="1_7b5dr"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7b5dr"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.6913568, 0.69135684, 0.6913566, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
 [node name="BlockSpace" type="Node2D" unique_id=1211163667]
 script = ExtResource("1_7b5dr")
 block_size = Vector2(32, 32)
@@ -19,3 +31,4 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_7b5dr")

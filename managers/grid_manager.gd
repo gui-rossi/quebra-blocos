@@ -29,6 +29,8 @@ func calculate_cell_size() -> void:
 	var size_by_width = available_width / MAX_COLUMNS
 	var size_by_height = available_height / MAX_ROWS
 	cell_size = floor(min(size_by_width, size_by_height))
+	GameConfig.cell_size = cell_size
+	GameConfig.cell_gap = cell_gap
 
 	var grid_total_size = Vector2(cell_size * MAX_COLUMNS, cell_size * MAX_ROWS)
 	var leftover = Vector2(available_width, available_height) - grid_total_size

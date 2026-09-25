@@ -1,15 +1,19 @@
 [gd_scene format=3 uid="uid://bn750qxpc3nxi"]
 
+[ext_resource type="PackedScene" uid="uid://bay8tksb248hi" path="res://scenes/controls/randomized_block.tscn" id="1_np33j"]
+
 [node name="BottomTray" type="Node2D" unique_id=2017416139]
 metadata/_edit_group_ = true
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=294838236]
-layer = 2
 
 [node name="Control" type="Control" parent="CanvasLayer" unique_id=1442773197]
 layout_mode = 3
 anchors_preset = 0
 offset_bottom = 329.0
+
+[node name="RandomizedBlock" parent="CanvasLayer/Control" unique_id=527154083 instance=ExtResource("1_np33j")]
+position = Vector2(16.74076, 20.051773)
 
 [node name="ColorRect" type="ColorRect" parent="CanvasLayer/Control" unique_id=1213012590]
 layout_mode = 1
