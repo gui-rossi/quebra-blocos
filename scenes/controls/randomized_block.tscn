@@ -5,7 +5,7 @@
 [sub_resource type="Gradient" id="Gradient_wb4oo"]
 interpolation_color_space = 1
 offsets = PackedFloat32Array(0.66549295, 0.7007042)
-colors = PackedColorArray(0, 0.19215687, 0.50980395, 0.48235294, 0, 0, 0, 0)
+colors = PackedColorArray(0, 0.19215687, 0.50980395, 1, 0, 0, 0, 0)
 
 [sub_resource type="GradientTexture2D" id="GradientTexture2D_s1fef"]
 gradient = SubResource("Gradient_wb4oo")
@@ -18,5 +18,4 @@ metadata/_edit_group_ = true
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1783062339]
 position = Vector2(9.094947e-13, 4.7683716e-07)
-scale = Vector2(5.125, 5.125)
 texture = SubResource("GradientTexture2D_s1fef")

@@ -1,8 +1,10 @@
 [gd_scene format=3 uid="uid://bn750qxpc3nxi"]
 
+[ext_resource type="Script" uid="uid://bd1r4r2cvqvfy" path="res://scenes/controls/bottom_tray.gd" id="1_cchdi"]
 [ext_resource type="PackedScene" uid="uid://bay8tksb248hi" path="res://scenes/controls/randomized_block.tscn" id="1_np33j"]
 
 [node name="BottomTray" type="Node2D" unique_id=2017416139]
+script = ExtResource("1_cchdi")
 metadata/_edit_group_ = true
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=294838236]
@@ -12,9 +14,6 @@ layout_mode = 3
 anchors_preset = 0
 offset_bottom = 329.0
 
-[node name="RandomizedBlock" parent="CanvasLayer/Control" unique_id=527154083 instance=ExtResource("1_np33j")]
-position = Vector2(16.74076, 20.051773)
-
 [node name="ColorRect" type="ColorRect" parent="CanvasLayer/Control" unique_id=1213012590]
 layout_mode = 1
 anchors_preset = 15
@@ -23,3 +22,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.34043974, 0.26006702, 0.1842097, 1)
+
+[node name="Randomized3" parent="CanvasLayer/Control" unique_id=527154083 instance=ExtResource("1_np33j")]
+
+[node name="Randomized2" parent="CanvasLayer/Control" unique_id=1200436161 instance=ExtResource("1_np33j")]
+
+[node name="Randomized1" parent="CanvasLayer/Control" unique_id=1695671559 instance=ExtResource("1_np33j")]

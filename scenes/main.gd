@@ -23,3 +23,8 @@ func layout() -> void:
 	bottom_tray.get_node("CanvasLayer/Control").position = Vector2(0, viewport_size.y - bottom_height)
 
 	grid_manager.set_reserved_space(top_height, bottom_height)
+	
+	bottom_tray.get_node("CanvasLayer/Control").size = Vector2(viewport_size.x, bottom_height)
+	bottom_tray.get_node("CanvasLayer/Control").position = Vector2(0, viewport_size.y - bottom_height)
+	bottom_tray.set_randomized_blocks() 
+	bottom_tray.scale_randomized_blocks()

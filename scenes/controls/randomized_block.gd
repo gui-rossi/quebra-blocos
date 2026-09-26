@@ -8,8 +8,7 @@ var shape_cells: Array = []
 var piece_color: Color = Color.WHITE
 
 func _ready() -> void:
-	randomize_shape()
-	build_piece()
+	pass  # don't build here - GameConfig.cell_size isn't set yet at this point
 
 func randomize_shape() -> void:
 	var shape_name = ShapeDefinitions.get_random_shape_name()
