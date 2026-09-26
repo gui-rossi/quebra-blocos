@@ -15,14 +15,14 @@ func randomize_shape() -> void:
 	shape_cells = ShapeDefinitions.get_shape(shape_name)
 	piece_color = Color(randf(), randf(), randf())
 
-func build_piece() -> void:
+func build_piece(shape_scale_factor: float = 1.0) -> void:
 	# clear any previously built tiles (keep the circle Sprite2D)
 	for child in get_children():
 		if child != circle_sprite:
 			child.queue_free()
 
-	var size = GameConfig.cell_size
-	var gap = GameConfig.cell_gap
+	var size = GameConfig.cell_size * shape_scale_factor
+	var gap = GameConfig.cell_gap * shape_scale_factor
 
 	# bounding box of the shape, so it can be centered on the circle
 	var min_x = shape_cells[0].x

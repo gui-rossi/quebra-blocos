@@ -5,6 +5,8 @@ extends Node2D
 @onready var randomized_block_3: Node2D = $CanvasLayer/Control/Randomized3
 
 var padding = 0.95  # leave some breathing room inside each slot
+@export var circle_scale_factor: float = 1
+@export var shape_scale_factor: float = .5  # NEW - shrinks the shape relative to its circle
 
 func set_randomized_blocks() -> void:
 	var control: Control = $CanvasLayer/Control
@@ -18,7 +20,7 @@ func set_randomized_blocks() -> void:
 		var slot_center_x = slot_width * i + slot_width / 2.0
 		blocks[i].position = Vector2(slot_center_x, height / 2.0)
 		blocks[i].randomize_shape()   # NEW
-		blocks[i].build_piece()       # NEW - now runs after GameConfig.cell_size is correct
+		blocks[i].build_piece(shape_scale_factor)       # NEW - now runs after GameConfig.cell_size is correct
 
 func scale_randomized_blocks() -> void:
 	var control: Control = $CanvasLayer/Control
