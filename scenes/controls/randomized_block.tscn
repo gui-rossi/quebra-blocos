@@ -19,3 +19,5 @@ metadata/_edit_group_ = true
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1783062339]
 position = Vector2(9.094947e-13, 4.7683716e-07)
 texture = SubResource("GradientTexture2D_s1fef")
+
+[node name="ShapeContainer" type="Node2D" parent="." unique_id=519024475]

@@ -3,6 +3,7 @@ extends Node2D
 const BLOCK_SPACE_SCENE: PackedScene = preload("res://scenes/blocks/block_space.tscn")
 
 @onready var circle_sprite: Sprite2D = $Sprite2D
+@onready var shape_container: Node2D = $ShapeContainer
 
 var shape_cells: Array = []
 var piece_color: Color = Color.WHITE
@@ -16,15 +17,12 @@ func randomize_shape() -> void:
 	piece_color = Color(randf(), randf(), randf())
 
 func build_piece(shape_scale_factor: float = 1.0) -> void:
-	# clear any previously built tiles (keep the circle Sprite2D)
-	for child in get_children():
-		if child != circle_sprite:
-			child.queue_free()
+	for child in shape_container.get_children():
+		child.queue_free()
 
 	var size = GameConfig.cell_size * shape_scale_factor
 	var gap = GameConfig.cell_gap * shape_scale_factor
 
-	# bounding box of the shape, so it can be centered on the circle
 	var min_x = shape_cells[0].x
 	var max_x = shape_cells[0].x
 	var min_y = shape_cells[0].y
@@ -41,7 +39,7 @@ func build_piece(shape_scale_factor: float = 1.0) -> void:
 
 	for cell in shape_cells:
 		var tile = BLOCK_SPACE_SCENE.instantiate()
-		add_child(tile)
+		shape_container.add_child(tile)
 		tile.block_size = Vector2(size - gap, size - gap)
 		tile.modulate = piece_color
 

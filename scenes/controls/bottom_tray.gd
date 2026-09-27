@@ -1,12 +1,13 @@
 extends Node2D
 
+@export var circle_scale_factor: float = 1.0  # bump this up/down to resize circle + shape together
+@export var shape_scale_factor: float = .2   # shrinks/grows the shape relative to its own circle
+
 @onready var randomized_block_1: Node2D = $CanvasLayer/Control/Randomized1
 @onready var randomized_block_2: Node2D = $CanvasLayer/Control/Randomized2
 @onready var randomized_block_3: Node2D = $CanvasLayer/Control/Randomized3
 
 var padding = 0.95  # leave some breathing room inside each slot
-@export var circle_scale_factor: float = 1
-@export var shape_scale_factor: float = .5  # NEW - shrinks the shape relative to its circle
 
 func set_randomized_blocks() -> void:
 	var control: Control = $CanvasLayer/Control
@@ -19,8 +20,8 @@ func set_randomized_blocks() -> void:
 	for i in range(blocks.size()):
 		var slot_center_x = slot_width * i + slot_width / 2.0
 		blocks[i].position = Vector2(slot_center_x, height / 2.0)
-		blocks[i].randomize_shape()   # NEW
-		blocks[i].build_piece(shape_scale_factor)       # NEW - now runs after GameConfig.cell_size is correct
+		blocks[i].randomize_shape()
+		blocks[i].build_piece(shape_scale_factor)
 
 func scale_randomized_blocks() -> void:
 	var control: Control = $CanvasLayer/Control
@@ -32,6 +33,18 @@ func scale_randomized_blocks() -> void:
 
 	for block in blocks:
 		var circle_sprite: Sprite2D = block.get_node("Sprite2D")
+		circle_sprite.scale = Vector2.ONE
+
 		var native_diameter = circle_sprite.texture.get_size().x
-		var scale_factor = target_diameter / native_diameter
-		circle_sprite.scale = Vector2(scale_factor, scale_factor)  # scale the sprite, not block
+		var fit_scale = target_diameter / native_diameter
+		block.scale = Vector2(fit_scale, fit_scale) * circle_scale_factor
+
+func check_and_respawn_if_needed() -> void:
+	var blocks = [randomized_block_1, randomized_block_2, randomized_block_3]
+	for b in blocks:
+		if not b.shape_cells.is_empty():
+			return
+
+	for b in blocks:
+		b.randomize_shape()
+		b.build_piece(shape_scale_factor)
