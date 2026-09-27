@@ -12,15 +12,15 @@ var grid_offset: Vector2
 var reserved_top: float = 0.0
 var reserved_bottom: float = 0.0
 
-#func _ready() -> void:
-	#calculate_cell_size()
-	#spawn_grid()
+var grid_data: Array = []  # grid_data[row][col] = null or the placed tile node
+var highlight_nodes: Array = []
 
 func set_reserved_space(top: float, bottom: float) -> void:
 	reserved_top = top
 	reserved_bottom = bottom
 	calculate_cell_size()
 	spawn_grid()
+	_init_grid_data()
 
 func calculate_cell_size() -> void:
 	var viewport_size = get_viewport_rect().size
@@ -46,3 +46,96 @@ func spawn_block_space(col: int, row: int) -> void:
 	$GridCells.add_child(spaceBlock)
 	spaceBlock.block_size = Vector2(cell_size - cell_gap, cell_size - cell_gap)
 	spaceBlock.position = grid_offset + Vector2(col * cell_size, row * cell_size) + Vector2(cell_gap, cell_gap) / 2.0
+
+# ---------------- Grid state / placement ----------------
+
+func _init_grid_data() -> void:
+	grid_data.clear()
+	for r in range(MAX_ROWS):
+		var row_data = []
+		row_data.resize(MAX_COLUMNS)
+		row_data.fill(null)
+		grid_data.append(row_data)
+
+func world_to_cell(world_pos: Vector2) -> Vector2i:
+	var local = world_pos - global_position - grid_offset
+	return Vector2i(floor(local.x / cell_size), floor(local.y / cell_size))
+
+func is_cell_empty(col: int, row: int) -> bool:
+	if col < 0 or col >= MAX_COLUMNS or row < 0 or row >= MAX_ROWS:
+		return false
+	return grid_data[row][col] == null
+
+func can_place_shape(shape: Array, origin_col: int, origin_row: int) -> bool:
+	for offset in shape:
+		var c = origin_col + offset.x
+		var r = origin_row + offset.y
+		if not is_cell_empty(c, r):
+			return false
+	return true
+
+func place_shape(shape: Array, origin_col: int, origin_row: int, color: Color) -> void:
+	for offset in shape:
+		var c = origin_col + offset.x
+		var r = origin_row + offset.y
+		var tile = BLOCK_SPACE_SCENE.instantiate()
+		$GridCells.add_child(tile)
+		tile.block_size = Vector2(cell_size - cell_gap, cell_size - cell_gap)
+		tile.position = grid_offset + Vector2(c * cell_size, r * cell_size) + Vector2(cell_gap, cell_gap) / 2.0
+		tile.modulate = color
+		grid_data[r][c] = tile
+
+	check_and_clear_lines()
+
+func check_and_clear_lines() -> void:
+	var rows_to_clear: Array = []
+	var cols_to_clear: Array = []
+
+	for r in range(MAX_ROWS):
+		if grid_data[r].all(func(cell): return cell != null):
+			rows_to_clear.append(r)
+
+	for c in range(MAX_COLUMNS):
+		var full := true
+		for r in range(MAX_ROWS):
+			if grid_data[r][c] == null:
+				full = false
+				break
+		if full:
+			cols_to_clear.append(c)
+
+	for r in rows_to_clear:
+		for c in range(MAX_COLUMNS):
+			_clear_cell(c, r)
+	for c in cols_to_clear:
+		for r in range(MAX_ROWS):
+			_clear_cell(c, r)
+
+func _clear_cell(col: int, row: int) -> void:
+	var tile = grid_data[row][col]
+	if tile:
+		tile.queue_free()
+		grid_data[row][col] = null
+
+# ---------------- Highlight ----------------
+
+func show_highlight(shape: Array, origin_col: int, origin_row: int) -> void:
+	clear_highlight()
+	var valid = can_place_shape(shape, origin_col, origin_row)
+	for offset in shape:
+		var c = origin_col + offset.x
+		var r = origin_row + offset.y
+		if c < 0 or c >= MAX_COLUMNS or r < 0 or r >= MAX_ROWS:
+			continue
+		var outline = ColorRect.new()
+		outline.color = Color(0, 1, 0, 0.35) if valid else Color(1, 0, 0, 0.35)
+		outline.size = Vector2(cell_size - cell_gap, cell_size - cell_gap)
+		outline.position = grid_offset + Vector2(c * cell_size, r * cell_size) + Vector2(cell_gap, cell_gap) / 2.0
+		outline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(outline)
+		highlight_nodes.append(outline)
+
+func clear_highlight() -> void:
+	for h in highlight_nodes:
+		h.queue_free()
+	highlight_nodes.clear()
