@@ -1,6 +1,9 @@
 [gd_scene format=3 uid="uid://du88s6lh66lsh"]
 
+[ext_resource type="Script" uid="uid://disaes6se88b4" path="res://scenes/controls/top_tray.gd" id="1_vqjag"]
+
 [node name="TopTray" type="Node2D" unique_id=1736511696]
+script = ExtResource("1_vqjag")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=284877260]
 layer = 2
@@ -18,3 +21,15 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.34043974, 0.26006702, 0.1842097, 1)
+
+[node name="ScoreLabel" type="Label" parent="CanvasLayer/Control" unique_id=1109085549]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(2, 2)
+text = "Score: 0"
+horizontal_alignment = 1
+vertical_alignment = 1

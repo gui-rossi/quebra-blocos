@@ -1,5 +1,8 @@
 extends Node2D
 
+signal score_changed(new_score: int)
+var score: int = 0
+
 @export var MAX_COLUMNS: = 10
 @export var MAX_ROWS: = 12
 @export var cell_gap: float = 1.0
@@ -104,12 +107,23 @@ func check_and_clear_lines() -> void:
 		if full:
 			cols_to_clear.append(c)
 
+	if rows_to_clear.is_empty() and cols_to_clear.is_empty():
+		return
+
+	# collect unique cells so a corner block isn't counted twice
+	var cells_to_clear := {}
 	for r in rows_to_clear:
 		for c in range(MAX_COLUMNS):
-			_clear_cell(c, r)
+			cells_to_clear[Vector2i(c, r)] = true
 	for c in cols_to_clear:
 		for r in range(MAX_ROWS):
-			_clear_cell(c, r)
+			cells_to_clear[Vector2i(c, r)] = true
+
+	for cell in cells_to_clear.keys():
+		_clear_cell(cell.x, cell.y)
+
+	score += cells_to_clear.size() * GameConfig.points_per_block
+	score_changed.emit(score)
 
 func _clear_cell(col: int, row: int) -> void:
 	var tile = grid_data[row][col]
