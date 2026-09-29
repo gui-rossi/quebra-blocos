@@ -14,7 +14,8 @@ func _ready() -> void:
 func randomize_shape() -> void:
 	var shape_name = ShapeDefinitions.get_random_shape_name()
 	shape_cells = ShapeDefinitions.get_shape(shape_name)
-	piece_color = Color(randf(), randf(), randf())
+	#piece_color = Color(randf(), randf(), randf())
+	piece_color = Color.from_rgba8(17, 138, 178)
 
 func build_piece(shape_scale_factor: float = 1.0) -> void:
 	for child in shape_container.get_children():

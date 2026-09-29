@@ -11,7 +11,6 @@ layer = 2
 [node name="Control" type="Control" parent="CanvasLayer" unique_id=116014223]
 layout_mode = 3
 anchors_preset = 0
-offset_bottom = 119.0
 
 [node name="ColorRect" type="ColorRect" parent="CanvasLayer/Control" unique_id=1194707449]
 layout_mode = 1
@@ -29,7 +28,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-scale = Vector2(2, 2)
+theme_override_font_sizes/font_size = 64
 text = "Score: 0"
 horizontal_alignment = 1
 vertical_alignment = 1
