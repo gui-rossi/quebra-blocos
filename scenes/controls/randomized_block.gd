@@ -12,8 +12,8 @@ func _ready() -> void:
 	pass  # don't build here - GameConfig.cell_size isn't set yet at this point
 
 func randomize_shape() -> void:
-	#shape_cells = ShapeDefinitions.get_shape("square_3x3")
-	#return
+	shape_cells = ShapeDefinitions.get_shape("square_3x3")
+	return
 	
 	var shape_name = ShapeDefinitions.get_random_shape_name()
 	shape_cells = ShapeDefinitions.get_shape(shape_name)

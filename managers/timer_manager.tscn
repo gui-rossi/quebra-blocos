@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://buuj0ppy2c07g"]
+
+[ext_resource type="Script" uid="uid://b4a1wxewbvk04" path="res://managers/timer_manager.gd" id="1_lvjry"]
+
+[node name="TimerManager" type="Node" unique_id=867230725]
+script = ExtResource("1_lvjry")
+
+[node name="ComboTimer" type="Timer" parent="." unique_id=1186613786]
+wait_time = 5.0
+one_shot = true
+autostart = true
+
+[connection signal="timeout" from="ComboTimer" to="." method="_on_combo_timer_timeout"]

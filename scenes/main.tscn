@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://du88s6lh66lsh" path="res://scenes/controls/top_tray.tscn" id="3_jyhfs"]
 [ext_resource type="PackedScene" uid="uid://bn750qxpc3nxi" path="res://scenes/controls/bottom_tray.tscn" id="3_sugp2"]
 [ext_resource type="Script" uid="uid://buw0kuw7odxsf" path="res://managers/drag_controller.gd" id="5_tbgi4"]
+[ext_resource type="PackedScene" uid="uid://buuj0ppy2c07g" path="res://managers/timer_manager.tscn" id="6_tefeu"]
 
 [node name="Main" type="Node" unique_id=2068484450]
 script = ExtResource("1_0wfyh")
@@ -25,6 +26,8 @@ color = Color(9.62615e-08, 0.19331533, 0.50892246, 0.48235294)
 
 [node name="BottomTray" parent="CanvasLayer" unique_id=2017416139 instance=ExtResource("3_sugp2")]
 
+[node name="TimerManager" parent="CanvasLayer" unique_id=867230725 instance=ExtResource("6_tefeu")]
+
 [node name="DragLayer" type="CanvasLayer" parent="." unique_id=2139862623]
 layer = 5
 
@@ -36,3 +39,6 @@ drag_layer_path = NodePath("../DragLayer")
 
 [connection signal="combo_changed" from="CanvasLayer/GridManager" to="CanvasLayer/TopTray" method="set_combo"]
 [connection signal="score_changed" from="CanvasLayer/GridManager" to="CanvasLayer/TopTray" method="set_score"]
+[connection signal="start_combo_timer" from="CanvasLayer/GridManager" to="CanvasLayer/TimerManager" method="start_combo_timer"]
+[connection signal="combo_expired" from="CanvasLayer/TimerManager" to="CanvasLayer/TopTray" method="reset_combo"]
+[connection signal="update_combo_timer" from="CanvasLayer/TimerManager" to="CanvasLayer/TopTray" method="update_combo_timer"]

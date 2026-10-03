@@ -2,6 +2,8 @@ extends Node2D
 
 signal score_changed(new_score: int)
 signal combo_changed(new_multiplier: int)
+signal start_combo_timer()
+
 var score: int = 0
 
 @export var MAX_COLUMNS: = 10
@@ -128,12 +130,10 @@ func check_and_clear_lines() -> void:
 	var gained := 0
 	for r in rows_to_clear:
 		gained += MAX_COLUMNS * GameConfig.points_per_block * GameConfig.current_score_multiplier
-		GameConfig.current_score_multiplier += 1
-		combo_changed.emit(GameConfig.current_score_multiplier)
+		cleared_row_or_column()
 	for c in cols_to_clear:
 		gained += MAX_ROWS * GameConfig.points_per_block * GameConfig.current_score_multiplier
-		GameConfig.current_score_multiplier += 1
-		combo_changed.emit(GameConfig.current_score_multiplier)
+		cleared_row_or_column()
 
 	score += gained
 	score_changed.emit(score)
@@ -166,3 +166,8 @@ func clear_highlight() -> void:
 	for h in highlight_nodes:
 		h.queue_free()
 	highlight_nodes.clear()
+	
+func cleared_row_or_column() -> void:
+	GameConfig.current_score_multiplier += 1
+	combo_changed.emit(GameConfig.current_score_multiplier)
+	start_combo_timer.emit()
