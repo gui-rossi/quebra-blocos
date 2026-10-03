@@ -34,4 +34,5 @@ grid_manager_path = NodePath("../CanvasLayer/GridManager")
 bottom_tray_path = NodePath("../CanvasLayer/BottomTray")
 drag_layer_path = NodePath("../DragLayer")
 
+[connection signal="combo_changed" from="CanvasLayer/GridManager" to="CanvasLayer/TopTray" method="set_combo"]
 [connection signal="score_changed" from="CanvasLayer/GridManager" to="CanvasLayer/TopTray" method="set_score"]

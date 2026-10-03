@@ -1,6 +1,7 @@
 extends Node2D
 
 signal score_changed(new_score: int)
+signal combo_changed(new_multiplier: int)
 var score: int = 0
 
 @export var MAX_COLUMNS: = 10
@@ -110,7 +111,7 @@ func check_and_clear_lines() -> void:
 	if rows_to_clear.is_empty() and cols_to_clear.is_empty():
 		return
 
-	# collect unique cells so a corner block isn't counted twice
+	# collect unique cells for the actual clearing (a corner isn't cleared twice)
 	var cells_to_clear := {}
 	for r in rows_to_clear:
 		for c in range(MAX_COLUMNS):
@@ -122,7 +123,19 @@ func check_and_clear_lines() -> void:
 	for cell in cells_to_clear.keys():
 		_clear_cell(cell.x, cell.y)
 
-	score += cells_to_clear.size() * GameConfig.points_per_block
+	# score each line using the current global combo multiplier, then bump it
+	# for the next line - persists across calls until your combo timer resets it
+	var gained := 0
+	for r in rows_to_clear:
+		gained += MAX_COLUMNS * GameConfig.points_per_block * GameConfig.current_score_multiplier
+		GameConfig.current_score_multiplier += 1
+		combo_changed.emit(GameConfig.current_score_multiplier)
+	for c in cols_to_clear:
+		gained += MAX_ROWS * GameConfig.points_per_block * GameConfig.current_score_multiplier
+		GameConfig.current_score_multiplier += 1
+		combo_changed.emit(GameConfig.current_score_multiplier)
+
+	score += gained
 	score_changed.emit(score)
 
 func _clear_cell(col: int, row: int) -> void:
