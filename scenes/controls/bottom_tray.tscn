@@ -8,6 +8,7 @@ script = ExtResource("1_cchdi")
 metadata/_edit_group_ = true
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=294838236]
+layer = 0
 
 [node name="Control" type="Control" parent="CanvasLayer" unique_id=1442773197]
 layout_mode = 3

@@ -6,7 +6,7 @@
 script = ExtResource("1_vqjag")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=284877260]
-layer = 2
+layer = 0
 
 [node name="Control" type="Control" parent="CanvasLayer" unique_id=116014223]
 layout_mode = 3

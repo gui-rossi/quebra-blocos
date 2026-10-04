@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://sx81muecys5v"]
+
+[ext_resource type="Texture2D" uid="uid://bxwf2ovgysmg5" path="res://scenes/powerups/bomb_powerup.png" id="1_m4vxr"]
+
+[node name="PowerupBomb" type="Node2D" unique_id=1399244109]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1613775317]
+
+[node name="Sprite2D" type="Sprite2D" parent="CanvasLayer" unique_id=518521730]
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Sprite2D" unique_id=1167750581]
+offset_right = 40.0
+offset_bottom = 40.0
+texture = ExtResource("1_m4vxr")
