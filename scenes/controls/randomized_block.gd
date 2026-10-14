@@ -1,17 +1,29 @@
 extends Node2D
 
 const BLOCK_SPACE_SCENE: PackedScene = preload("res://scenes/blocks/block_space.tscn")
+const BOMB_SCENE: PackedScene = preload("res://scenes/powerups/powerup_bomb.tscn")
+
+# Size of the bomb inside the circle, relative to the circle's texture
+const BOMB_CIRCLE_RATIO: float = 0.55
 
 @onready var circle_sprite: Sprite2D = $Sprite2D
 @onready var shape_container: Node2D = $ShapeContainer
 
 var shape_cells: Array = []
 var piece_color: Color = Color.DARK_GREEN
+var is_bomb: bool = false
+var bomb: Node2D = null
 
 func _ready() -> void:
 	pass  # don't build here - GameConfig.cell_size isn't set yet at this point
 
 func randomize_shape() -> void:
+	is_bomb = randf() < GameConfig.bomb_spawn_chance
+	if is_bomb:
+		# a single cell: the blast center, also keeps this slot "in use" for the tray
+		shape_cells = [Vector2i(0, 0)]
+		return
+
 	shape_cells = ShapeDefinitions.get_shape("square_3x3")
 	return
 	
@@ -23,6 +35,11 @@ func randomize_shape() -> void:
 func build_piece(shape_scale_factor: float = 1.0) -> void:
 	for child in shape_container.get_children():
 		child.queue_free()
+	bomb = null
+
+	if is_bomb:
+		_build_bomb()
+		return
 
 	var size = GameConfig.cell_size * shape_scale_factor
 	var gap = GameConfig.cell_gap * shape_scale_factor
@@ -50,3 +67,17 @@ func build_piece(shape_scale_factor: float = 1.0) -> void:
 		var local_x = (cell.x - min_x) * size - shape_width / 2.0
 		var local_y = (cell.y - min_y) * size - shape_height / 2.0
 		tile.position = circle_center + Vector2(local_x, local_y)
+
+func _build_bomb() -> void:
+	bomb = BOMB_SCENE.instantiate()
+	shape_container.add_child(bomb)
+	bomb.position = circle_sprite.position
+	bomb.fit_to(circle_sprite.texture.get_size().x * BOMB_CIRCLE_RATIO)
+	bomb.start_idle()
+
+# Hands the bomb over (e.g. to the grid, to explode) - this piece no longer owns it
+func take_bomb() -> Node2D:
+	var taken = bomb
+	bomb = null
+	is_bomb = false
+	return taken

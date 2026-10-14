@@ -11,6 +11,10 @@ var drag_layer: CanvasLayer
 var dragging_container: Node2D = null
 var dragging_piece: Node2D = null  # the RandomizedBlock this container belongs to
 var drag_shape_half: Vector2i = Vector2i.ZERO  # half-extents of the shape's bounding box
+var _drag_scale_tween: Tween
+
+# On-screen size of a dragged bomb's body, in grid cells
+const BOMB_DRAG_SIZE_CELLS: float = 1.2
 
 func _ready() -> void:
 	grid_manager = get_node(grid_manager_path)
@@ -28,7 +32,10 @@ func _input(event: InputEvent) -> void:
 		if dragging_container:
 			dragging_container.global_position = event.position
 			var origin_cell = _get_origin_cell()
-			grid_manager.show_highlight(dragging_piece.shape_cells, origin_cell.x, origin_cell.y)
+			if dragging_piece.is_bomb:
+				grid_manager.show_bomb_highlight(origin_cell.x, origin_cell.y)
+			else:
+				grid_manager.show_highlight(dragging_piece.shape_cells, origin_cell.x, origin_cell.y)
 
 func _get_shape_bounds(shape: Array) -> Vector2i:
 	var min_x = shape[0].x
@@ -66,32 +73,53 @@ func _start_drag(piece: Node2D) -> void:
 	drag_shape_half = Vector2i(bounds.x / 2, bounds.y / 2)
 
 	dragging_container.reparent(drag_layer, true)
-	dragging_container.modulate.a = 0.6
+
+	if piece.is_bomb:
+		dragging_container.modulate.a = 0.85
+		# the bomb is big in the tray, shrink it to about a cell so the blast area stays visible
+		var target_scale = dragging_container.scale * (GameConfig.cell_size * BOMB_DRAG_SIZE_CELLS) / (piece.bomb.diameter * dragging_container.scale.x)
+		_drag_scale_tween = dragging_container.create_tween()
+		_drag_scale_tween.tween_property(dragging_container, "scale", target_scale, 0.1).set_ease(Tween.EASE_OUT)
+	else:
+		dragging_container.modulate.a = 0.6
 
 func _end_drag() -> void:
 	var container = dragging_container
 	var piece = dragging_piece
 	var origin_cell = _get_origin_cell()
-	var valid = grid_manager.can_place_shape(piece.shape_cells, origin_cell.x, origin_cell.y)
+
+	if _drag_scale_tween:
+		_drag_scale_tween.kill()
+		_drag_scale_tween = null
+
+	var valid: bool
+	if piece.is_bomb:
+		valid = grid_manager.can_place_bomb(origin_cell.x, origin_cell.y)
+	else:
+		valid = grid_manager.can_place_shape(piece.shape_cells, origin_cell.x, origin_cell.y)
 
 	if valid:
-		grid_manager.place_shape(piece.shape_cells, origin_cell.x, origin_cell.y, piece.piece_color)
+		if piece.is_bomb:
+			# the grid takes the bomb (out of the container) before the container is emptied below
+			grid_manager.detonate_bomb(piece.take_bomb(), origin_cell.x, origin_cell.y)
+		else:
+			grid_manager.place_shape(piece.shape_cells, origin_cell.x, origin_cell.y, piece.piece_color)
 		# consume this piece - clear its shape, mark it used, don't respawn yet
 		for tile in container.get_children():
 			tile.queue_free()
-		container.reparent(piece, false)
-		container.position = Vector2.ZERO
-		container.scale = Vector2.ONE
-		container.modulate.a = 1.0
+		_return_container(container, piece)
 		piece.shape_cells = []
 		bottom_tray.check_and_respawn_if_needed()
 	else:
 		# invalid drop - snap the shape back to its circle
-		container.reparent(piece, false)
-		container.position = Vector2.ZERO
-		container.scale = Vector2.ONE
-		container.modulate.a = 1.0
+		_return_container(container, piece)
 
 	grid_manager.clear_highlight()
 	dragging_container = null
 	dragging_piece = null
+
+func _return_container(container: Node2D, piece: Node2D) -> void:
+	container.reparent(piece, false)
+	container.position = Vector2.ZERO
+	container.scale = Vector2.ONE
+	container.modulate.a = 1.0
