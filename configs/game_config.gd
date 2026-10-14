@@ -7,4 +7,5 @@ var points_per_block: int = 10
 var current_score_multiplier: int = 1
 
 var bomb_spawn_chance: float = 0.1  # chance of each tray slot rolling a bomb instead of a shape
-var bomb_radius: int = 1  # 1 = 3x3 area, 2 = 5x5 without the corners, ...
+var bomb_radius: int = 4  # blast circle radius in cells, around the cell the bomb is dropped on
+var bomb_fuse_time: float = 0.8  # seconds the spark takes to burn down the fuse before the blast

@@ -4,7 +4,7 @@ const BLOCK_SPACE_SCENE: PackedScene = preload("res://scenes/blocks/block_space.
 const BOMB_SCENE: PackedScene = preload("res://scenes/powerups/powerup_bomb.tscn")
 
 # Size of the bomb inside the circle, relative to the circle's texture
-const BOMB_CIRCLE_RATIO: float = 0.55
+const BOMB_CIRCLE_RATIO: float = 0.42
 
 @onready var circle_sprite: Sprite2D = $Sprite2D
 @onready var shape_container: Node2D = $ShapeContainer

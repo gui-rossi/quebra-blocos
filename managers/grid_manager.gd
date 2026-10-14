@@ -13,6 +13,7 @@ var score: int = 0
 
 const BLOCK_SPACE_SCENE: PackedScene = preload("res://scenes/blocks/block_space.tscn")
 const ExplosionEffect = preload("res://scenes/powerups/explosion_effect.gd")
+const EXPLOSION_SOUND: AudioStream = preload("res://scenes/powerups/bomb_explosion.wav")
 var cell_size: float
 var grid_offset: Vector2
 
@@ -22,6 +23,12 @@ var reserved_bottom: float = 0.0
 var grid_data: Array = []  # grid_data[row][col] = null or the placed tile node
 var highlight_nodes: Array = []
 var _shake_tween: Tween
+var _explosion_player: AudioStreamPlayer
+
+func _ready() -> void:
+	_explosion_player = AudioStreamPlayer.new()
+	_explosion_player.stream = EXPLOSION_SOUND
+	add_child(_explosion_player)
 
 func set_reserved_space(top: float, bottom: float) -> void:
 	reserved_top = top
@@ -154,7 +161,8 @@ func _clear_cell(col: int, row: int) -> void:
 
 # ---------------- Bomb ----------------
 
-# Cells inside the blast (roughly round): radius 1 = 3x3, radius 2 = 5x5 without the corners
+# Cells inside the blast circle: every cell whose center is within radius + 0.5 of the bomb's cell,
+# so radius 1 = 3x3, radius 2 = 5x5 without the corners, radius 4 = 9x9 with rounded corners
 func get_bomb_area(center_col: int, center_row: int) -> Array[Vector2i]:
 	var radius = GameConfig.bomb_radius
 	var cells: Array[Vector2i] = []
@@ -192,6 +200,8 @@ func explode_at(center_col: int, center_row: int) -> void:
 
 	_spawn_explosion(center)
 	_shake()
+	_explosion_player.pitch_scale = randf_range(0.9, 1.1)  # so repeated blasts don't sound identical
+	_explosion_player.play()
 
 	if destroyed > 0:
 		score += destroyed * GameConfig.points_per_block * GameConfig.current_score_multiplier
@@ -222,7 +232,7 @@ func _shake() -> void:
 		_shake_tween.kill()
 	position = Vector2.ZERO
 
-	var strength = cell_size * 0.12
+	var strength = cell_size * 0.04 * (GameConfig.bomb_radius + 1)  # bigger blasts shake harder
 	_shake_tween = create_tween()
 	for i in range(6):
 		var offset = Vector2(randf_range(-1, 1), randf_range(-1, 1)) * strength * (1.0 - i / 6.0)

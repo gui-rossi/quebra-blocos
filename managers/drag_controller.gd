@@ -14,7 +14,7 @@ var drag_shape_half: Vector2i = Vector2i.ZERO  # half-extents of the shape's bou
 var _drag_scale_tween: Tween
 
 # On-screen size of a dragged bomb's body, in grid cells
-const BOMB_DRAG_SIZE_CELLS: float = 1.2
+const BOMB_DRAG_SIZE_CELLS: float = 0.9
 
 func _ready() -> void:
 	grid_manager = get_node(grid_manager_path)
