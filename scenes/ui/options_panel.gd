@@ -5,6 +5,7 @@ extends PanelContainer
 signal closed
 
 const UiStyle = preload("res://scenes/ui/ui_style.gd")
+const MusicWidget = preload("res://scenes/ui/music_widget.gd")
 
 func _ready() -> void:
 	add_theme_stylebox_override("panel", UiStyle.box(UiStyle.PANEL_BG, 32, 32.0))
@@ -17,6 +18,7 @@ func _ready() -> void:
 	column.add_child(_slider(Settings.sfx_volume, func(v): Settings.sfx_volume = v))
 	column.add_child(_toggle("Music", Settings.music_enabled, func(on): Settings.music_enabled = on))
 	column.add_child(_slider(Settings.music_volume, func(v): Settings.music_volume = v))
+	column.add_child(MusicWidget.new())
 	column.add_child(_toggle("Vibration", Settings.vibration, func(on): Settings.vibration = on))
 	column.add_child(_toggle("Fancy effects", Settings.effects_high, func(on): Settings.effects_high = on))
 
