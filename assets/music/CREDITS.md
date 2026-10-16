@@ -19,6 +19,7 @@ Licenses were checked on each file's Wikimedia Commons page when it was download
 | `fucik_entry_of_the_gladiators.ogg` | Julius Fučík: Entry of the Gladiators (United States Marine Band) | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Julius_Fu%C4%8D%C3%ADk%27s_%22Entrance_of_the_Gladiators%22,_performed_by_the_U.S._Marine_Band.oga) |
 | `rimsky_korsakov_flight_of_the_bumblebee.mp3` | Nikolai Rimsky-Korsakov: Flight of the Bumblebee (United States Air Force Band of the Rockies) | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Flight_of_the_Bumblebee_-_Concert_Band_-_United_States_Air_Force_Band_of_the_Rockies.mp3) |
 | `beethoven_fur_elise.ogg` | Ludwig van Beethoven: Für Elise, WoO 59 (performed and released by V Gao) | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:FurElise.ogg) |
+| `abreu_tico_tico_no_fuba.ogg` | Zequinha de Abreu: Tico-Tico no Fubá (Orquestra Colbaz, Columbia, 1931) ³ | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Tico_Tico_no_Fub%C3%A1-Orquestra_Colbaz-Zequinha_de_Abreu-1931.ogg) |
 | `mozart_rondo_alla_turca.ogg` | Wolfgang Amadeus Mozart: Rondo alla Turca, Sonata K. 331, III ² | Public domain | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Rondo_Alla_Turka.ogg) |
 
 ¹ Commons lists it as public domain; its permission line only says "a Creative Commons License" from the performer's
@@ -29,8 +30,9 @@ domain license was found; replace it when one is.
 
 US military band recordings (Marine Band, Air Force Band) are works of the US government, so they're public domain.
 
-Not included: Tico-Tico no Fubá (Zequinha de Abreu). The composition is public domain in Brazil and most countries, but
-in the US it's likely protected until 2027, and the only free recording found (1931) is protected there until 2032.
+³ Commons lists it as public domain (composer died in 1935, recording from 1931), which holds in Brazil and most
+countries. In the US the composition may be protected until 2027 and pre-1947 recordings until 2032 (2026 note).
+Included by the project owner's decision.
 
 To add a track: use a CC0 / public domain *recording* (the composition being old isn't enough, recordings have
 their own copyright), put the .ogg here, list it in `managers/music_player.gd` (TRACKS) and in this table.

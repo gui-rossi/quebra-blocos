@@ -19,6 +19,7 @@ const TRACKS := [
 	{"path": "res://assets/music/rimsky_korsakov_flight_of_the_bumblebee.mp3", "title": "Rimsky-Korsakov - Flight of the Bumblebee"},
 	{"path": "res://assets/music/beethoven_fur_elise.ogg", "title": "Beethoven - Für Elise"},
 	{"path": "res://assets/music/mozart_rondo_alla_turca.ogg", "title": "Mozart - Rondo alla Turca"},
+	{"path": "res://assets/music/abreu_tico_tico_no_fuba.ogg", "title": "Zequinha de Abreu - Tico-Tico no Fubá"},
 ]
 
 const FADE_TIME := 2.5  # seconds of crossfade between tracks
