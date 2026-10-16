@@ -64,6 +64,9 @@ func layout() -> void:
 
 	grid_manager.set_reserved_space(top_height, bottom_height)
 
+	var board = grid_manager.get_board_rect()
+	top_tray.align_sides(board.position.x, board.end.x)
+
 # Saves the run when the app goes to the background or the window closes
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST:

@@ -444,12 +444,15 @@ func _add_ghost(cell: Vector2i, color: Color, alpha: float) -> void:
 
 # ---------------- Board ----------------
 
+# The board panel's rectangle (grid plus its padding), in this node's coordinates
+func get_board_rect() -> Rect2:
+	return Rect2(grid_offset, Vector2(MAX_COLUMNS, MAX_ROWS) * cell_size).grow(cell_size * 0.22)
+
 # Rounded panel behind the grid, with a soft drop shadow (drawn under all the cells)
 func _draw() -> void:
 	if cell_size <= 0.0:
 		return
-	var padding = cell_size * 0.22
-	var board = Rect2(grid_offset, Vector2(MAX_COLUMNS, MAX_ROWS) * cell_size).grow(padding)
+	var board = get_board_rect()
 	var radius = int(cell_size * 0.35)
 
 	var shadow = StyleBoxFlat.new()

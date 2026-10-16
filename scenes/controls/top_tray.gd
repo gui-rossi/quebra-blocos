@@ -8,10 +8,15 @@ signal settings_pressed
 const GearButton = preload("res://scenes/ui/gear_button.gd")
 const ComboBadge = preload("res://scenes/ui/combo_badge.gd")
 
+const HUD_ITEM_RATIO := 0.78  # gear and badge size, relative to the tray's height
+const HUD_ITEM_MAX := 100.0
+const SIDE_MARGIN := 20.0  # used until main.gd lines the sides up with the board
+
 const COMBO_SOUND_COOLDOWN_MS := 150  # two lines cleared at once bump the multiplier twice, play the sound once
 
 @onready var control: Control = $CanvasLayer/Control
 
+var _gear: Button
 var _score_label: Label
 var _best_label: Label
 var _badge: Control
@@ -19,12 +24,13 @@ var _displayed_score: float = 0.0
 var _score_tween: Tween
 var _punch_tween: Tween
 var _last_combo_sound_ms: int = 0
+var _side_left: float = -1.0  # x where the gear starts, -1 = use SIDE_MARGIN
+var _side_right: float = -1.0  # x where the badge ends, -1 = use SIDE_MARGIN
 
 func _ready() -> void:
-	var gear = GearButton.new()
-	control.add_child(gear)
-	gear.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT, Control.PRESET_MODE_MINSIZE, 12)
-	gear.pressed.connect(func(): settings_pressed.emit())
+	_gear = GearButton.new()
+	control.add_child(_gear)
+	_gear.pressed.connect(func(): settings_pressed.emit())
 
 	var score_box = VBoxContainer.new()
 	score_box.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -41,9 +47,31 @@ func _ready() -> void:
 
 	_badge = ComboBadge.new()
 	control.add_child(_badge)
-	_badge.custom_minimum_size = Vector2(104, 104)
-	_badge.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT, Control.PRESET_MODE_MINSIZE, 12)
-	_badge.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+
+	control.resized.connect(_layout_sides)
+	_layout_sides()
+
+# Lines the gear's left edge and the badge's right edge up with the board below
+func align_sides(left: float, right: float) -> void:
+	_side_left = left
+	_side_right = right
+	_layout_sides()
+
+# Gear on the left and badge on the right: same size, both centered vertically in the tray
+func _layout_sides() -> void:
+	var tray = control.size
+	if tray.y <= 0.0:
+		return
+	var item = minf(tray.y * HUD_ITEM_RATIO, HUD_ITEM_MAX)
+	var top = (tray.y - item) / 2.0
+	var left = _side_left if _side_left >= 0.0 else SIDE_MARGIN
+	var right = _side_right if _side_right >= 0.0 else tray.x - SIDE_MARGIN
+
+	for item_control in [_gear, _badge]:
+		item_control.custom_minimum_size = Vector2(item, item)
+		item_control.size = Vector2(item, item)
+	_gear.position = Vector2(left, top)
+	_badge.position = Vector2(right - item, top)
 
 func set_score(new_score: int) -> void:
 	var gained = new_score > int(_displayed_score)

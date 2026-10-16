@@ -1,6 +1,6 @@
 extends PanelContainer
 
-# Options screen, used by the main menu and the pause menu. Changes apply right away and are saved on Back.
+# Options screen, used by the main menu and the pause menu. Changes apply and are saved to the device right away.
 
 signal closed
 
@@ -38,6 +38,7 @@ func _toggle(text: String, value: bool, on_change: Callable) -> CheckButton:
 	toggle.toggled.connect(func(on: bool):
 		on_change.call(on)
 		Settings.apply()
+		Settings.save_settings()
 		Sfx.play("click")
 	)
 	return toggle
@@ -53,6 +54,9 @@ func _slider(value: float, on_change: Callable) -> HSlider:
 		on_change.call(v)
 		Settings.apply()
 	)
-	# play a click when letting go, so the new effects volume can be heard
-	slider.drag_ended.connect(func(_changed: bool): Sfx.play("click"))
+	# save and play a click when letting go, so the new effects volume can be heard
+	slider.drag_ended.connect(func(_changed: bool):
+		Settings.save_settings()
+		Sfx.play("click")
+	)
 	return slider

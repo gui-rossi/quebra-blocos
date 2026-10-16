@@ -22,6 +22,7 @@ ShapeDefinitions="*uid://dl1lp4li2ynwk"
 Settings="*res://configs/settings.gd"
 Sfx="*res://managers/sfx.gd"
 SaveGame="*res://configs/save_game.gd"
+MusicPlayer="*res://managers/music_player.gd"
 
 [display]
 
