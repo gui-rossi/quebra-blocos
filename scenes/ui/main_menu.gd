@@ -11,6 +11,7 @@ const GAME_SCENE := "res://scenes/main.tscn"
 var _menu: VBoxContainer
 var _options: PanelContainer
 var _title: Label
+var _best: Label
 
 func _ready() -> void:
 	get_tree().paused = false  # coming back from the pause menu
@@ -30,19 +31,21 @@ func _ready() -> void:
 
 	_title = UiStyle.label("Quebra\nBlocos", 110, Color(1, 0.9, 0.35), 16)
 	_menu.add_child(_title)
-	_menu.add_child(UiStyle.label("Best: " + NumberFormat.compact(Settings.best_score), 34, UiStyle.TEXT_SOFT))
+	_best = UiStyle.label("", 34, UiStyle.TEXT_SOFT)
+	_menu.add_child(_best)
+	_update_texts()
 	_menu.add_child(_spacer(40))
 
-	var resume = UiStyle.button("Continue")
+	var resume = UiStyle.button("MENU_CONTINUE")
 	resume.disabled = not SaveGame.has_run()
 	resume.pressed.connect(_continue_run)
 	_menu.add_child(resume)
 
-	var new_game = UiStyle.button("New game", UiStyle.PRIMARY.darkened(0.25) if SaveGame.has_run() else UiStyle.PRIMARY)
+	var new_game = UiStyle.button("MENU_NEW_GAME", UiStyle.PRIMARY.darkened(0.25) if SaveGame.has_run() else UiStyle.PRIMARY)
 	new_game.pressed.connect(_new_run)
 	_menu.add_child(new_game)
 
-	var options = UiStyle.button("Options", UiStyle.PRIMARY.darkened(0.25))
+	var options = UiStyle.button("MENU_OPTIONS", UiStyle.PRIMARY.darkened(0.25))
 	options.pressed.connect(_show_options)
 	_menu.add_child(options)
 
@@ -53,6 +56,14 @@ func _ready() -> void:
 
 	_animate_title()
 	UiStyle.pop_in(_menu)
+
+# Text built from values (labels holding just a key translate themselves)
+func _update_texts() -> void:
+	_best.text = tr("MENU_BEST") % NumberFormat.compact(Settings.best_score)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_TRANSLATION_CHANGED and _best:
+		_update_texts()
 
 func _continue_run() -> void:
 	SaveGame.pending_resume = true

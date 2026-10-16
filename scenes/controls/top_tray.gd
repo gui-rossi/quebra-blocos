@@ -25,6 +25,7 @@ var _displayed_score: float = 0.0
 var _score_tween: Tween
 var _punch_tween: Tween
 var _last_combo_sound_ms: int = 0
+var _best_value: int = 0
 var _side_left: float = -1.0  # x where the gear starts, -1 = use SIDE_MARGIN
 var _side_right: float = -1.0  # x where the badge ends, -1 = use SIDE_MARGIN
 
@@ -38,7 +39,7 @@ func _ready() -> void:
 	score_box.add_theme_constant_override("separation", -8)
 	score_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_score_label = _make_label("0", 60, Color.WHITE, 10)
-	_best_label = _make_label("BEST 0", 22, Color(1, 1, 1, 0.65), 4)
+	_best_label = _make_label("", 22, Color(1, 1, 1, 0.65), 4)
 	score_box.add_child(_score_label)
 	score_box.add_child(_best_label)
 	control.add_child(score_box)
@@ -87,7 +88,8 @@ func set_score(new_score: int) -> void:
 		_punch_score()
 
 func set_best(best: int) -> void:
-	_best_label.text = "BEST " + NumberFormat.compact(best)
+	_best_value = best
+	_best_label.text = tr("HUD_BEST") % NumberFormat.compact(best)
 
 func set_combo(new_combo: int) -> void:
 	_badge.set_multiplier(new_combo)
@@ -126,3 +128,7 @@ func _make_label(text: String, font_size: int, color: Color, outline: int) -> La
 	label.add_theme_constant_override("outline_size", outline)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_TRANSLATION_CHANGED and _best_label:
+		set_best(_best_value)

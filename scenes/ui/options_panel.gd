@@ -10,33 +10,58 @@ const MusicWidget = preload("res://scenes/ui/music_widget.gd")
 # Shown only while their sound is on: the volume and player are useless with it off
 var _sfx_volume: Control
 var _music_section: Control
+var _language_button: Button
 
 func _ready() -> void:
 	add_theme_stylebox_override("panel", UiStyle.box(UiStyle.PANEL_BG, 32, 32.0))
 
 	var column = UiStyle.vbox(18)
 	add_child(column)
-	column.add_child(UiStyle.label("Options", 52, UiStyle.TEXT, 8))
+	column.add_child(UiStyle.label("OPTIONS_TITLE", 52, UiStyle.TEXT, 8))
 
-	column.add_child(_toggle("Sound effects", Settings.sfx_enabled, func(on): Settings.sfx_enabled = on))
+	column.add_child(_toggle("OPTIONS_SOUND_EFFECTS", Settings.sfx_enabled, func(on): Settings.sfx_enabled = on))
 	_sfx_volume = _slider(Settings.sfx_volume, func(v): Settings.sfx_volume = v)
 	column.add_child(_sfx_volume)
 
-	column.add_child(_toggle("Music", Settings.music_enabled, func(on): Settings.music_enabled = on))
+	column.add_child(_toggle("OPTIONS_MUSIC", Settings.music_enabled, func(on): Settings.music_enabled = on))
 	_music_section = UiStyle.vbox(18)
 	_music_section.add_child(_slider(Settings.music_volume, func(v): Settings.music_volume = v))
 	_music_section.add_child(MusicWidget.new())
 	column.add_child(_music_section)
-	column.add_child(_toggle("Vibration", Settings.vibration, func(on): Settings.vibration = on))
-	column.add_child(_toggle("Fancy effects", Settings.effects_high, func(on): Settings.effects_high = on))
+	column.add_child(_toggle("OPTIONS_VIBRATION", Settings.vibration, func(on): Settings.vibration = on))
+	column.add_child(_toggle("OPTIONS_FANCY_EFFECTS", Settings.effects_high, func(on): Settings.effects_high = on))
 
-	var back = UiStyle.button("Back")
+	# tapping cycles Automatic -> English -> Português -> Español -> Automatic
+	_language_button = UiStyle.button("", UiStyle.PRIMARY.darkened(0.25), 28)
+	_language_button.custom_minimum_size = Vector2(420, 104)
+	_language_button.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED  # its text is already translated
+	_language_button.pressed.connect(_next_language)
+	column.add_child(_language_button)
+	_update_language_button()
+
+	var back = UiStyle.button("OPTIONS_BACK")
 	back.pressed.connect(_on_back)
 	column.add_child(back)
 
 	# also follows the pause menu's quick sound toggle
 	Settings.changed.connect(_sync_sections)
 	_sync_sections()
+
+func _next_language() -> void:
+	var codes = [""] + Settings.LANGUAGES.map(func(entry): return entry[0])
+	var index = codes.find(Settings.language)
+	Settings.set_language(codes[(index + 1) % codes.size()])
+
+# "Language: Automatic" with the language it picked on a second line, or the chosen language's own name
+func _update_language_button() -> void:
+	if Settings.language == "":
+		_language_button.text = "%s\n(%s)" % [tr("OPTIONS_LANGUAGE") % tr("OPTIONS_LANGUAGE_AUTO"), Settings.current_language_name()]
+	else:
+		_language_button.text = tr("OPTIONS_LANGUAGE") % Settings.current_language_name()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_TRANSLATION_CHANGED and _language_button:
+		_update_language_button()
 
 func _sync_sections() -> void:
 	_sfx_volume.visible = Settings.sfx_enabled

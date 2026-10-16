@@ -30,6 +30,7 @@ power-ups like the bomb.
 | `checkpoint-03-hud-music` | Gear and multiplier badge aligned with the board edges, badge font shrinking with digits, settings saved on every change, public-domain classical music (MusicPlayer) |
 | `checkpoint-04-music-player` | More public-domain tracks (14 total), a music player in Options (now playing, progress and time, previous and next) |
 | `checkpoint-05-backpack` | Backpack bar with 3 power-up slots (slots 2 and 3 unlock for good at 250K and 750K), compact score numbers (75.3K, 1.25M), music paused when turned off, unused sound controls hidden |
+| `checkpoint-06-languages` | Language support: English, Brazilian Portuguese and Spanish, automatic from the phone's language with a Language option in Options |
 
 ## Project layout
 
@@ -44,6 +45,9 @@ scenes/
   effects/         particle bursts and floating text
   ui/              menus, HUD widgets, backpack, shared UI styling
 assets/music/  public-domain music tracks + CREDITS.md (source and license of each)
+assets/ui/     UI sprites (backpack icon)
+localization/  strings.csv with every visible text in each language
+tools/         asset generator scripts (ignored by Godot)
 ```
 
 ### Autoloads (order matters, see `project.godot`)
@@ -137,6 +141,25 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   - Tico-Tico no Fubá may still be protected in the US. It's included at the owner's decision.
 - **Size:** the music adds about 69 MB. If app size matters, compress or drop Clair de lune and William Tell first.
 
+### Localization
+- **Strings live in `localization/strings.csv`** (columns `keys,en,pt_BR,es`). Godot imports it into
+  `strings.<locale>.translation` files, which are registered in `project.godot` under `[internationalization]`.
+  The fallback is `en`.
+- **Never put visible text in code; use a key.** A Control whose `text` is a key translates itself and updates
+  when the language changes. Text built from values uses `tr("KEY") % value` and is rebuilt in
+  `_notification(NOTIFICATION_TRANSLATION_CHANGED)` (see `top_tray.gd`, `main_menu.gd`, `options_panel.gd`,
+  `game_over_panel.gd`).
+- **Things that aren't translated:** turn auto-translation off (`auto_translate_mode = DISABLED`) on labels showing
+  text that must stay as it is (music titles) or that's already translated. The game's name "Quebra Blocos" isn't
+  translated either.
+- **Choosing the language:** `Settings.language` is `""` (automatic, which follows `OS.get_locale()`) or a code from
+  `Settings.LANGUAGES`. `Settings.set_language()` applies it right away and saves it. Godot matches the closest
+  translation, so `pt_PT` gets `pt_BR`, any `es_*` gets `es`, and the rest get English. In Options, the Language
+  button cycles Automatic → English → Português (Brasil) → Español.
+- **Adding a language:** add a column to the CSV, register its `.translation` file in `project.godot`, and add it
+  to `Settings.LANGUAGES` with its own name. Scripts beyond Latin, Cyrillic and Greek need a fallback font (Noto) in
+  a theme. Check the widths: Portuguese and Spanish run about 30% longer than English.
+
 ### UI conventions
 - **Menus are CanvasLayers on layer 20** with `PROCESS_MODE_ALWAYS`. Opening the pause menu sets
   `get_tree().paused`, which also stops drag input and the combo timer.
@@ -154,19 +177,6 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   down, never rounded up.
 
 ## Plans for the future
-
-### Next up: language support (en, pt_BR, es)
-- **Translations:** `localization/strings.csv` with keys and `en`, `pt_BR` and `es` columns, registered under Project
-  Settings → Localization. Every visible string becomes a key. Controls translate their `text` on their own, and
-  strings with values use `tr("KEY") % value`.
-- **Detection:** on first launch the game follows the phone's language (`OS.get_locale()`). Godot picks the closest
-  translation we ship, and anything we don't have falls back to English.
-- **Language option** in Options: "Automatic" (the default, follows the phone) followed by each language written in
-  its own language (English, Português (Brasil), Español). It's saved in `Settings` and applies right away, with no
-  restart.
-- **Watch for:** longer text (Portuguese and Spanish run about 30% longer, so check button and HUD widths). Music
-  titles stay untranslated. Languages outside Latin, Cyrillic and Greek would need extra Noto fonts, and
-  right-to-left languages are out of scope for now.
 
 ### Piece randomizer
 - **Difficulty curve:** spawn smaller pieces first, then bring in bigger ones as the game goes on. Possible measures

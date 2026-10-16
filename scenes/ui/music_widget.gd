@@ -13,10 +13,11 @@ func _ready() -> void:
 	alignment = BoxContainer.ALIGNMENT_CENTER
 	add_theme_constant_override("separation", 8)
 
-	add_child(UiStyle.label("Now playing", 22, UiStyle.TEXT_SOFT))
+	add_child(UiStyle.label("MUSIC_NOW_PLAYING", 22, UiStyle.TEXT_SOFT))
 	_title = UiStyle.label("", 28, UiStyle.TEXT)
 	_title.custom_minimum_size = Vector2(420, 0)
 	_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_title.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED  # track titles stay as they are
 	add_child(_title)
 
 	_progress = ProgressBar.new()
@@ -63,7 +64,7 @@ func _process(_delta: float) -> void:
 	_time.text = "%s / %s" % [_format(played), _format(length)]
 
 func _on_track_changed(title: String) -> void:
-	_title.text = title if title != "" else "No music"
+	_title.text = title if title != "" else tr("MUSIC_NONE")
 
 func _format(seconds: float) -> String:
 	var total = int(seconds)

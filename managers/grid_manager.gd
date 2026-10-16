@@ -21,7 +21,7 @@ const Palette = preload("res://configs/palette.gd")
 const NumberFormat = preload("res://configs/number_format.gd")
 
 # Banner shown when several lines break at once, by number of lines
-const MULTI_LINE_BANNERS := {2: "Great!", 3: "Amazing!", 4: "Unbelievable!"}
+const MULTI_LINE_BANNERS := {2: "BANNER_LINES_2", 3: "BANNER_LINES_3", 4: "BANNER_LINES_4"}  # translation keys
 
 var cell_size: float
 var grid_offset: Vector2

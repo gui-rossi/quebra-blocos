@@ -19,9 +19,9 @@ func _ready() -> void:
 	_menu_box = UiStyle.panel()
 	var column = UiStyle.vbox(22)
 	_menu_box.add_child(column)
-	column.add_child(UiStyle.label("Paused", 60, UiStyle.TEXT, 8))
+	column.add_child(UiStyle.label("PAUSE_TITLE", 60, UiStyle.TEXT, 8))
 
-	var resume = UiStyle.button("Resume")
+	var resume = UiStyle.button("PAUSE_RESUME")
 	resume.pressed.connect(close)
 	column.add_child(resume)
 
@@ -29,11 +29,11 @@ func _ready() -> void:
 	_sound_button.pressed.connect(_toggle_sound)
 	column.add_child(_sound_button)
 
-	var options = UiStyle.button("Options", UiStyle.PRIMARY.darkened(0.25))
+	var options = UiStyle.button("PAUSE_OPTIONS", UiStyle.PRIMARY.darkened(0.25))
 	options.pressed.connect(_show_options)
 	column.add_child(options)
 
-	var menu = UiStyle.button("Main menu", Color(0.55, 0.2, 0.25))
+	var menu = UiStyle.button("PAUSE_MAIN_MENU", Color(0.55, 0.2, 0.25))
 	menu.pressed.connect(func(): main_menu_requested.emit())
 	column.add_child(menu)
 
@@ -70,7 +70,7 @@ func _toggle_sound() -> void:
 	_update_sound_button()
 
 func _update_sound_button() -> void:
-	_sound_button.text = "Sound: On" if Settings.is_sound_on() else "Sound: Off"
+	_sound_button.text = "PAUSE_SOUND_ON" if Settings.is_sound_on() else "PAUSE_SOUND_OFF"
 
 # Both panels in one centered slot, only one is visible at a time
 func _stack(a: Control, b: Control) -> Control:

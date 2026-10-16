@@ -82,7 +82,7 @@ func update_unlocks(score: int) -> void:
 		_slots[i].unlock()
 	Sfx.play("combo_up", 1.2)
 	Settings.vibrate(30)
-	_celebrate("New backpack slot!")
+	_celebrate(tr("BACKPACK_SLOT_UNLOCKED"))
 
 func _slots_for_score(score: int) -> int:
 	var count := 0
