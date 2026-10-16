@@ -87,7 +87,8 @@ func load_settings() -> void:
 	language = cfg.get_value("game", "language", language)
 	effects_high = cfg.get_value("game", "effects_high", effects_high)
 	best_score = cfg.get_value("stats", "best_score", best_score)
-	backpack_slots = cfg.get_value("stats", "backpack_slots", backpack_slots)
+	# "_v2": the old key was saved with earlier unlock scores (and best scores counted), it's ignored now
+	backpack_slots = cfg.get_value("stats", "backpack_slots_v2", backpack_slots)
 
 func save_settings() -> void:
 	var cfg = ConfigFile.new()
@@ -99,7 +100,7 @@ func save_settings() -> void:
 	cfg.set_value("game", "language", language)
 	cfg.set_value("game", "effects_high", effects_high)
 	cfg.set_value("stats", "best_score", best_score)
-	cfg.set_value("stats", "backpack_slots", backpack_slots)
+	cfg.set_value("stats", "backpack_slots_v2", backpack_slots)
 	cfg.save(PATH)
 
 # Buses are created here so the project doesn't need a bus layout file

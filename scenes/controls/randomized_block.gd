@@ -44,8 +44,9 @@ func set_playable(playable: bool) -> void:
 	var tint = Color.WHITE if playable else Palette.PIECE_UNPLAYABLE
 	shape_container.modulate = Color(tint, shape_container.modulate.a)
 
-func randomize_shape() -> void:
-	var rolled_powerup = ShapeDefinitions.roll_powerup_name()
+# `allow_powerup` is false once another slot of the same batch already got a power-up
+func randomize_shape(allow_powerup: bool = true) -> void:
+	var rolled_powerup = ShapeDefinitions.roll_powerup_name() if allow_powerup else ""
 	if rolled_powerup != "":
 		_apply_powerup(rolled_powerup)
 		return

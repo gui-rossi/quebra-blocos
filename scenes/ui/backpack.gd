@@ -30,8 +30,6 @@ func _ready() -> void:
 		add_child(slot)
 		_slots.append(slot)
 
-	# scores reached before the backpack existed count too
-	Settings.backpack_slots = maxi(Settings.backpack_slots, _slots_for_score(Settings.best_score))
 	_refresh_locks()
 
 	resized.connect(_layout)

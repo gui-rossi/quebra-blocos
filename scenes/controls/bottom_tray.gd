@@ -14,8 +14,19 @@ func get_pieces() -> Array:
 
 func set_randomized_blocks() -> void:
 	_position_blocks()
+	_roll_batch()
+
+# Rolls a new batch of 3 pieces: at most 1 power-up among them. The slots roll in a random order,
+# so the power-up isn't more likely to land in the first slot.
+func _roll_batch() -> void:
+	var order = get_pieces().duplicate()
+	order.shuffle()
+	var powerup_allowed := true
+	for block in order:
+		block.randomize_shape(powerup_allowed)
+		if block.powerup_name != "":
+			powerup_allowed = false
 	for block in get_pieces():
-		block.randomize_shape()
 		block.build_piece(shape_scale_factor)
 
 # Rebuilds the three slots from get_slots_save() data
@@ -63,6 +74,4 @@ func check_and_respawn_if_needed() -> void:
 		if not b.shape_cells.is_empty():
 			return
 
-	for b in blocks:
-		b.randomize_shape()
-		b.build_piece(shape_scale_factor)
+	_roll_batch()

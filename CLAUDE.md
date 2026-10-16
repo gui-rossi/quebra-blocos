@@ -14,6 +14,8 @@ power-ups (bomb, laser, prism, booster).
   can leave out the `uid` (Godot assigns one).
 - **Git identity:** commits use the repo-local identity `guirossi <guizo.rossi@gmail.com>` (set in `.git/config`).
 - **Pushing:** WSL git has no GitHub credentials, so push with Windows git: `git.exe push origin <branch> <tag>`.
+- **Commit and push as soon as a feature or fix is done, without waiting to be asked.** The owner tests from the
+  remote branch after the push. **Update this file in every push** (checkpoint table, architecture notes, plans).
 - **Checkpoints:** each milestone is an annotated git **tag** named `checkpoint-NN-<name>` on the work branch
   (currently `enhancements`), pushed to GitHub. Follow-up fixes for a milestone go in a new commit, then the tag is
   moved with `git tag -f -a` and force-pushed with `git.exe push --force origin <tag>`. `git tag -l` shows the next
@@ -31,7 +33,7 @@ power-ups (bomb, laser, prism, booster).
 | `checkpoint-04-music-player` | More public-domain tracks (14 total), a music player in Options (now playing, progress and time, previous and next) |
 | `checkpoint-05-backpack` | Backpack bar with 3 power-up slots (slots 2 and 3 unlock for good at 250K and 750K), compact score numbers (75.3K, 1.25M), music paused when turned off, unused sound controls hidden |
 | `checkpoint-06-languages` | Language support: English, Brazilian Portuguese and Spanish, automatic from the phone's language with a Language option in Options |
-| `checkpoint-07-powerups` | Generic power-up system, new laser / prism / booster, smaller bomb (radius 2), 5 backpack slots unlocking at 20K / 50K / 100K / 500K |
+| `checkpoint-07-powerups` | Generic power-up system, new laser / prism / booster, smaller bomb (radius 2), 5 backpack slots unlocking at 20K / 50K / 100K / 500K (only from scores reached in a game), at most 1 power-up per tray batch |
 
 ## Project layout
 
@@ -93,7 +95,8 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
 - **Adding a power-up:** an entry in `POWERUPS`, a visual, and a case in `get_powerup_area`, `can_place_powerup` and
   `activate_powerup`.
 - **Spawning:** one roll per tray slot against the sum of all `spawn_chance` values, then a pick weighted by chance
-  (`roll_powerup_name`).
+  (`roll_powerup_name`). **At most 1 power-up per batch of 3:** `bottom_tray._roll_batch()` rolls the slots in a
+  random order, and once one gets a power-up the others can only get shapes.
 
 ### Drawing
 - **Blocks are drawn, not textured.** `scenes/blocks/block_visual.gd` draws the beveled, glossy tile with
@@ -133,8 +136,9 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
 
 ### Backpack
 - There are 5 slots (`Backpack.SLOT_COUNT`), and slot 1 is always open. The rest unlock at
-  `GameConfig.backpack_unlock_scores = [0, 20000, 50000, 100000, 500000]`. Reaching a score in any game unlocks
-  that slot for good (`Settings.backpack_slots`), and an existing best score counts too.
+  `GameConfig.backpack_unlock_scores = [0, 20000, 50000, 100000, 500000]`. Reaching a score during a game unlocks
+  that slot for good (`Settings.backpack_slots`, saved as `backpack_slots_v2`). Past best scores don't count, so
+  new players always start with 1 open slot.
 - While a tray power-up is dragged, free slots glow. Dropping on one (with some margin around it) stores the power-up
   and uses up the tray piece, like placing it. A stored power-up is dragged onto the grid the same way as from the
   tray, and returns to its slot if dropped elsewhere.
@@ -199,8 +203,6 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   (cell count) and shift the weights as progress grows, instead of the current uniform `get_random_shape_name()`.
 - **Every batch of 3 tray pieces must be 3 different pieces** (no repeated shape in the same batch). Roll the batch
   as a whole in `bottom_tray`, not one slot at a time.
-- **At most 1 power-up per batch of 3.** Today each slot rolls `spawn_chance` on its own
-  (`ShapeDefinitions.roll_powerup_name`), so 2 or 3 power-ups can show up together.
 - The testing shortcut in `randomize_shape()` (always `square_3x3`) goes away as part of this.
 
 ### Power-ups
