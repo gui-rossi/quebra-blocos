@@ -20,6 +20,8 @@ power-ups (bomb, laser, prism, booster, hourglass).
   (currently `enhancements`), pushed to GitHub. Follow-up fixes for a milestone go in a new commit, then the tag is
   moved with `git tag -f -a` and force-pushed with `git.exe push --force origin <tag>`. `git tag -l` shows the next
   number.
+- **`README.md`** explains how to run the game and build a Windows `.exe` or an Android `.apk`/`.aab`. Builds
+  go in `build/`, which is gitignored.
 - **`.import` files:** Godot creates them when the project opens (one per asset, including every music track). Commit
   them when they show up.
 
