@@ -46,6 +46,10 @@ func stop_idle() -> void:
 		_idle_tween = null
 	sprite.rotation = 0.0
 
+# Same entry point as the other power-ups (see powerup_visual.gd)
+func activate(target: Vector2) -> void:
+	await detonate(target)
+
 # Snaps onto `target` (global), burns the fuse down into the bomb, swells up glowing red, then frees itself
 func detonate(target: Vector2) -> void:
 	stop_idle()

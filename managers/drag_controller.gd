@@ -1,6 +1,6 @@
 extends Node2D
 
-signal piece_dropped(was_bomb: bool)  # a piece was placed on the grid (and the tray refilled if needed)
+signal piece_dropped(was_powerup: bool)  # a piece was placed on the grid (and the tray refilled if needed)
 
 @export var grid_manager_path: NodePath
 @export var bottom_tray_path: NodePath
@@ -44,8 +44,8 @@ func _input(event: InputEvent) -> void:
 					return
 
 			var origin_cell = _get_origin_cell()
-			if dragging_piece.is_bomb:
-				grid_manager.show_bomb_highlight(origin_cell.x, origin_cell.y)
+			if dragging_piece.powerup_name != "":
+				grid_manager.show_powerup_highlight(dragging_piece.powerup_name, origin_cell.x, origin_cell.y)
 			else:
 				grid_manager.show_highlight(dragging_piece.shape_cells, origin_cell.x, origin_cell.y, dragging_piece.piece_color)
 
@@ -122,17 +122,17 @@ func _end_drag() -> void:
 			_store_in_backpack(container, piece, slot)
 			return
 
-	var was_bomb: bool = piece.is_bomb
+	var powerup: String = piece.powerup_name
 	var valid: bool
-	if piece.is_bomb:
-		valid = grid_manager.can_place_bomb(origin_cell.x, origin_cell.y)
+	if powerup != "":
+		valid = grid_manager.can_place_powerup(powerup, origin_cell.x, origin_cell.y)
 	else:
 		valid = grid_manager.can_place_shape(piece.shape_cells, origin_cell.x, origin_cell.y)
 
 	if valid:
-		if piece.is_bomb:
-			# the grid takes the bomb (out of the container) before the container is emptied below
-			grid_manager.detonate_bomb(piece.take_bomb(), origin_cell.x, origin_cell.y)
+		if powerup != "":
+			# the grid takes the power-up (out of the container) before the container is emptied below
+			grid_manager.activate_powerup(powerup, piece.take_powerup(), origin_cell.x, origin_cell.y)
 		else:
 			grid_manager.place_shape(piece.shape_cells, origin_cell.x, origin_cell.y, piece.piece_color)
 		# consume this piece - clear its shape, mark it used, don't respawn yet
@@ -150,7 +150,7 @@ func _end_drag() -> void:
 	dragging_piece = null
 
 	if valid:
-		piece_dropped.emit(was_bomb)
+		piece_dropped.emit(powerup != "")
 
 # Puts a piece that's being dragged back in its tray slot (e.g. when the game gets paused)
 func cancel_drag() -> void:
@@ -174,9 +174,7 @@ func _can_store_dragged() -> bool:
 # Moves the dragged tray power-up into `slot`: the tray piece is used up, like placing it on the grid
 func _store_in_backpack(container: Node2D, piece: CanvasItem, slot: Control) -> void:
 	var key: String = piece.powerup_name
-	if piece.is_bomb:
-		piece.take_bomb()
-	piece.powerup_name = ""
+	piece.take_powerup()
 	for child in container.get_children():
 		child.queue_free()
 	_return_container(container, piece)

@@ -1,15 +1,14 @@
 extends Control
 
 # One backpack slot: empty, holding a stored power-up, or locked until a score is reached.
-# It has the same fields the drag controller reads from a tray piece (shape_cells, powerup_name, is_bomb,
+# It has the same fields the drag controller reads from a tray piece (shape_cells, powerup_name, take_powerup(),
 # ShapeContainer, ...), so a stored power-up is dragged onto the grid exactly like one from the tray.
 
-const BOMB_SCENE: PackedScene = preload("res://scenes/powerups/powerup_bomb.tscn")
 const Palette = preload("res://configs/palette.gd")
 const NumberFormat = preload("res://configs/number_format.gd")
 
 const GLOW := Color(1.0, 0.82, 0.3)  # border when a power-up can be dropped here
-const BOMB_SIZE_RATIO := 0.55  # bomb body size relative to the slot
+const POWERUP_SIZE_RATIO := 0.55  # power-up body size relative to the slot
 
 var is_backpack_slot := true
 var unlock_score: int = 0:
@@ -45,14 +44,13 @@ var shape_cells: Array = []:
 		shape_cells = value
 		queue_redraw()
 var powerup_name: String = ""
-var is_bomb: bool = false
 var piece_color: Color = Color.WHITE
 var drag_size_cells: float = 0.0
 var drag_alpha: float = 1.0
 var body_size: float = 0.0
 var container_rest_scale: Vector2 = Vector2.ONE
 var container_rest_position: Vector2 = Vector2.ZERO
-var bomb: Node2D = null
+var powerup_visual: Node2D = null
 
 var shape_container: Node2D
 var _lock_label: Label
@@ -88,18 +86,16 @@ func store(key: String) -> void:
 	if powerup.is_empty():
 		return
 	powerup_name = key
-	is_bomb = key == "bomb"
 	shape_cells = powerup.cells
 	drag_size_cells = powerup.drag_size_cells
 	drag_alpha = powerup.drag_alpha
 	_build_visual()
 	_pop(shape_container)
 
-# Hands the bomb over (to the grid, to explode) - this slot no longer owns it
-func take_bomb() -> Node2D:
-	var taken = bomb
-	bomb = null
-	is_bomb = false
+# Hands the power-up's drawing over (to the grid, to play its effect) - this slot is empty after
+func take_powerup() -> Node2D:
+	var taken = powerup_visual
+	powerup_visual = null
 	powerup_name = ""
 	return taken
 
@@ -111,21 +107,20 @@ func unlock() -> void:
 func _build_visual() -> void:
 	for child in shape_container.get_children():
 		child.queue_free()
-	bomb = null
-	if is_bomb:
-		bomb = BOMB_SCENE.instantiate()
-		shape_container.add_child(bomb)
-		bomb.fit_to(minf(size.x, size.y) * BOMB_SIZE_RATIO)
-		bomb.start_idle()
-		body_size = bomb.diameter
+	powerup_visual = ShapeDefinitions.make_powerup_visual(powerup_name)
+	if powerup_visual:
+		shape_container.add_child(powerup_visual)
+		powerup_visual.fit_to(minf(size.x, size.y) * POWERUP_SIZE_RATIO)
+		powerup_visual.start_idle()
+		body_size = powerup_visual.diameter
 
 func _on_resized() -> void:
 	container_rest_position = size / 2.0
 	if shape_container.get_parent() == self:  # not while it's being dragged
 		shape_container.position = container_rest_position
-	if bomb:
-		bomb.fit_to(minf(size.x, size.y) * BOMB_SIZE_RATIO)
-		body_size = bomb.diameter
+	if powerup_visual:
+		powerup_visual.fit_to(minf(size.x, size.y) * POWERUP_SIZE_RATIO)
+		body_size = powerup_visual.diameter
 
 	var font_size = maxi(10, int(size.y * 0.22))
 	_lock_label.add_theme_font_size_override("font_size", font_size)

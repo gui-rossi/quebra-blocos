@@ -86,9 +86,9 @@ func _notification(what: int) -> void:
 
 # ---------------- Run flow ----------------
 
-func _on_piece_dropped(was_bomb: bool) -> void:
-	if was_bomb:
-		await grid_manager.bomb_detonated  # its cells only free up once the fuse burns down
+func _on_piece_dropped(was_powerup: bool) -> void:
+	if was_powerup:
+		await grid_manager.powerup_finished  # its cells only free up once its animation is done
 	_save_run()
 	_update_playable()
 	_check_game_over()

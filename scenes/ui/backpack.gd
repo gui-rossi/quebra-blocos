@@ -1,6 +1,6 @@
 extends Control
 
-# Backpack bar between the board and the tray: a backpack icon and 3 slots for storing power-ups.
+# Backpack bar between the board and the tray: a backpack icon and 5 slots for storing power-ups.
 # Drag a power-up from the tray onto a free slot to keep it, drag it from the slot onto the grid to use it later.
 # Slots past the first unlock for good once a game reaches GameConfig.backpack_unlock_scores.
 
@@ -8,9 +8,9 @@ const BackpackSlot = preload("res://scenes/ui/backpack_slot.gd")
 const FloatingText = preload("res://scenes/effects/floating_text.gd")
 const ICON: Texture2D = preload("res://assets/ui/backpack.png")  # made by tools/backpack_icons.py
 
-const SLOT_COUNT := 3
+const SLOT_COUNT := 5
 const ITEM_RATIO := 0.84  # slot size relative to the bar's height
-const GAP_RATIO := 0.18  # space between slots, relative to the slot size
+const GAP_RATIO := 0.14  # space between slots, relative to the slot size
 const DROP_MARGIN_RATIO := 0.25  # how far outside a slot a drop still counts, relative to the slot size
 
 var _icon: TextureRect
@@ -118,11 +118,12 @@ func restore(items: Array) -> void:
 
 # ---------------- Layout ----------------
 
-# Icon then the 3 slots, all the same size, centered in the bar
+# Icon then the slots, all the same size, centered in the bar (smaller if the bar is too narrow for them)
 func _layout() -> void:
 	if size.y <= 0.0:
 		return
-	var item = size.y * ITEM_RATIO
+	var fits_width = size.x * 0.94 / (SLOT_COUNT + 1 + GAP_RATIO * SLOT_COUNT)
+	var item = minf(size.y * ITEM_RATIO, fits_width)
 	var gap = item * GAP_RATIO
 	var total = item * (SLOT_COUNT + 1) + gap * SLOT_COUNT
 	var x = (size.x - total) / 2.0

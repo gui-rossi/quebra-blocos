@@ -3,7 +3,7 @@ extends Node2D
 signal score_changed(new_score: int)
 signal combo_changed(new_multiplier: int)
 signal start_combo_timer()
-signal bomb_detonated()  # the blast went off and its cells are free
+signal powerup_finished()  # a power-up's effect is done and the cells it cleared are free
 
 var score: int = 0
 
@@ -21,6 +21,7 @@ const Palette = preload("res://configs/palette.gd")
 const NumberFormat = preload("res://configs/number_format.gd")
 
 # Banner shown when several lines break at once, by number of lines
+const LASER_COLOR := Color(0.55, 1.0, 1.0, 0.85)
 const MULTI_LINE_BANNERS := {2: "BANNER_LINES_2", 3: "BANNER_LINES_3", 4: "BANNER_LINES_4"}  # translation keys
 
 var cell_size: float
@@ -238,7 +239,59 @@ func check_and_clear_lines(focus: Vector2i = Vector2i.ZERO) -> void:
 	Sfx.play("line_clear", minf(1.0 + 0.08 * (GameConfig.current_score_multiplier - 2), 2.0))
 	Settings.vibrate(20)
 
-# ---------------- Bomb ----------------
+# ---------------- Power-ups ----------------
+# Each power-up (see ShapeDefinitions.POWERUPS) has an area it affects, a rule for where it can be dropped,
+# and an effect. The drag controller only calls these three generic functions.
+
+# Cells a power-up dropped on (col, row) would affect, for the preview
+func get_powerup_area(key: String, col: int, row: int) -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	if not is_in_grid(col, row):
+		return cells
+	match key:
+		"bomb":
+			cells = get_bomb_area(col, row)
+		"laser":
+			for c in range(MAX_COLUMNS):
+				cells.append(Vector2i(c, row))
+			for r in range(MAX_ROWS):
+				if r != row:
+					cells.append(Vector2i(col, r))
+		"prism":
+			var target = grid_data[row][col]
+			if target:
+				for r in range(MAX_ROWS):
+					for c in range(MAX_COLUMNS):
+						var tile = grid_data[r][c]
+						if tile and _same_color(tile.block_color, target.block_color):
+							cells.append(Vector2i(c, r))
+		"booster":
+			cells.append(Vector2i(col, row))
+	return cells
+
+func can_place_powerup(key: String, col: int, row: int) -> bool:
+	if not is_in_grid(col, row):
+		return false
+	if key == "prism":
+		return grid_data[row][col] != null  # it needs a block to take the color from
+	return true  # the others go over anything
+
+# Plays the power-up's animation on the target cell, then applies its effect
+func activate_powerup(key: String, visual: Node2D, col: int, row: int) -> void:
+	var cell = Vector2i(col, row)
+	var area = get_powerup_area(key, col, row)  # decided at drop time
+	visual.reparent(self, true)
+	await visual.activate(to_global(cell_to_local_center(cell)))
+	match key:
+		"bomb":
+			explode_at(col, row)
+		"laser":
+			_fire_laser(cell, area)
+		"prism":
+			_clear_color(cell, area)
+		"booster":
+			_boost(cell)
+	powerup_finished.emit()
 
 # Cells inside the blast circle: every cell whose center is within radius + 0.5 of the bomb's cell,
 # so radius 1 = 3x3, radius 2 = 5x5 without the corners, radius 4 = 9x9 with rounded corners
@@ -255,28 +308,9 @@ func get_bomb_area(center_col: int, center_row: int) -> Array[Vector2i]:
 				cells.append(Vector2i(c, r))
 	return cells
 
-func can_place_bomb(center_col: int, center_row: int) -> bool:
-	return is_in_grid(center_col, center_row)  # bombs go over existing blocks
-
-# Plays the bomb's fuse animation on the target cell, then blows up its area
-func detonate_bomb(bomb: Node2D, center_col: int, center_row: int) -> void:
-	bomb.reparent(self, true)
-	await bomb.detonate(to_global(cell_to_local_center(Vector2i(center_col, center_row))))
-	explode_at(center_col, center_row)
-	bomb_detonated.emit()
-
 func explode_at(center_col: int, center_row: int) -> void:
 	var center = Vector2i(center_col, center_row)
-	var destroyed := 0
-
-	for cell in get_bomb_area(center_col, center_row):
-		var tile = grid_data[cell.y][cell.x]
-		if tile == null:
-			continue
-		# the cell is free right away, the tile only sticks around for its animation
-		grid_data[cell.y][cell.x] = null
-		destroyed += 1
-		_animate_tile_destroyed(tile, Vector2(cell - center).length() * 0.05)
+	_destroy_cells(get_bomb_area(center_col, center_row), center, 0.05)
 
 	_spawn_explosion(center)
 	_shake(cell_size * 0.04 * (GameConfig.bomb_radius + 1))  # bigger blasts shake harder
@@ -284,9 +318,49 @@ func explode_at(center_col: int, center_row: int) -> void:
 	_explosion_player.pitch_scale = randf_range(0.9, 1.1)  # so repeated blasts don't sound identical
 	_explosion_player.play()
 
+# Laser: beams along the row and the column, the blocks break outwards from the target
+func _fire_laser(cell: Vector2i, area: Array) -> void:
+	_flash_line(Vector2(0, cell.y), Vector2(MAX_COLUMNS, 1), LASER_COLOR)
+	_flash_line(Vector2(cell.x, 0), Vector2(1, MAX_ROWS), LASER_COLOR)
+	_destroy_cells(area, cell, 0.03)
+	_shake(cell_size * 0.06)
+	Sfx.play("laser")
+	Settings.vibrate(30)
+
+# Prism: every block of the target's color breaks, rippling out from the target
+func _clear_color(cell: Vector2i, area: Array) -> void:
+	_destroy_cells(area, cell, 0.035)
+	_spawn_floating_text("+%d" % area.size(), cell_to_local_center(cell), Color.WHITE, 40)
+	Sfx.play("line_clear", 1.5)
+	Settings.vibrate(30)
+
+# Booster: the multiplier goes up and the combo timer refills
+func _boost(cell: Vector2i) -> void:
+	GameConfig.current_score_multiplier += GameConfig.booster_multiplier
+	combo_changed.emit(GameConfig.current_score_multiplier)
+	start_combo_timer.emit()
+	_spawn_floating_text(tr("POWERUP_BOOSTER") % GameConfig.booster_multiplier, cell_to_local_center(cell), Color(1, 0.85, 0.3), 44)
+	Sfx.play("combo_up", 1.3)
+	Settings.vibrate(30)
+
+# Breaks the blocks in `cells` (empty ones are skipped) with a wave from `center`, and scores them
+func _destroy_cells(cells: Array, center: Vector2i, delay_per_cell: float) -> int:
+	var destroyed := 0
+	for cell in cells:
+		var tile = grid_data[cell.y][cell.x]
+		if tile == null:
+			continue
+		# the cell is free right away, the tile only sticks around for its animation
+		grid_data[cell.y][cell.x] = null
+		destroyed += 1
+		_animate_tile_destroyed(tile, Vector2(cell - center).length() * delay_per_cell)
 	if destroyed > 0:
 		score += destroyed * GameConfig.points_per_block * GameConfig.current_score_multiplier
 		score_changed.emit(score)
+	return destroyed
+
+func _same_color(a: Color, b: Color) -> bool:
+	return a.to_html(false) == b.to_html(false)  # colors come back from saves as text, compare them the same way
 
 func _animate_tile_destroyed(tile: Node2D, delay: float) -> void:
 	# scale the tile from its center, not its top-left corner
@@ -344,10 +418,10 @@ func _spawn_floating_text(text: String, local_position: Vector2, color: Color, f
 	add_child(popup)
 	popup.play()
 
-# Quick white flash over a cleared row or column, `cell` and `cells` in grid cells
-func _flash_line(cell: Vector2, cells: Vector2) -> void:
+# Quick flash over a cleared row or column, `cell` and `cells` in grid cells
+func _flash_line(cell: Vector2, cells: Vector2, color: Color = Color(1, 1, 1, 0.7)) -> void:
 	var flash = ColorRect.new()
-	flash.color = Color(1, 1, 1, 0.7)
+	flash.color = color
 	flash.position = grid_offset + cell * cell_size
 	flash.size = cells * cell_size
 	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -395,19 +469,21 @@ func show_highlight(shape: Array, origin_col: int, origin_row: int, color: Color
 		if not placed.has(cell):
 			_add_ghost(cell, color, 0.85)
 
-# Blast area of a bomb centered on the given cell: filled cells (the ones that will break) stand out
-func show_bomb_highlight(center_col: int, center_row: int) -> void:
-	var key = [center_col, center_row, "bomb"]
-	if key == _highlight_key:
+# Preview of a power-up dropped on (col, row): the blocks it would break stand out, empty cells in its area are faint.
+# Shows nothing where it can't be dropped.
+func show_powerup_highlight(key: String, col: int, row: int) -> void:
+	var highlight_key = [col, row, key]
+	if highlight_key == _highlight_key:
 		return
 	clear_highlight()
-	_highlight_key = key
+	_highlight_key = highlight_key
 
-	if not is_in_grid(center_col, center_row):
+	if not can_place_powerup(key, col, row):
 		return
-	for cell in get_bomb_area(center_col, center_row):
+	var color: Color = ShapeDefinitions.get_powerup(key).get("ghost", Color.WHITE)
+	for cell in get_powerup_area(key, col, row):
 		var filled = grid_data[cell.y][cell.x] != null
-		_add_ghost(cell, Color(1, 0.45, 0.1), 0.75 if filled else 0.25)
+		_add_ghost(cell, color, 0.75 if filled else 0.25)
 
 func clear_highlight() -> void:
 	for h in highlight_nodes:

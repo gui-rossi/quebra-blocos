@@ -22,6 +22,7 @@ func _ready() -> void:
 	_clips["combo_up"] = _make_clip(0.3, _combo_up_sample)
 	_clips["click"] = _make_clip(0.05, _click_sample)
 	_clips["game_over"] = _make_clip(0.8, _game_over_sample)
+	_clips["laser"] = _make_clip(0.35, _laser_sample)
 
 func play(clip_name: String, pitch: float = 1.0) -> void:
 	var clip = _clips.get(clip_name)
@@ -83,6 +84,13 @@ func _combo_up_sample(t: float, p: float) -> float:
 # UI button tick
 func _click_sample(t: float, p: float) -> float:
 	return sin(TAU * 1200.0 * t) * pow(1.0 - p, 4.0) * 0.4
+
+# Laser zap: a buzzy tone sweeping down fast, with some crackle
+func _laser_sample(t: float, p: float) -> float:
+	var phase = fposmod(_glide_phase(t, 1900.0, 260.0, 0.35) / TAU, 1.0)
+	var saw = phase * 2.0 - 1.0
+	var crackle = randf_range(-1.0, 1.0) * 0.25 * (1.0 - p)
+	return (saw * 0.55 + crackle) * _envelope(p, 0.01) * 0.35
 
 # Slow falling tone when the run ends
 func _game_over_sample(t: float, p: float) -> float:

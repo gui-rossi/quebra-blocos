@@ -3,7 +3,7 @@
 A mobile block puzzle game in **Godot 4.7** (GDScript, "Mobile" renderer, 720×1280 portrait base viewport,
 `canvas_items` stretch with `expand` aspect). It's inspired by Block Blast, not a copy: drag pieces from a 3-slot
 tray onto a 10×12 grid, clear full rows and columns, chain clears for a score multiplier with a combo timer, and use
-power-ups like the bomb.
+power-ups (bomb, laser, prism, booster).
 
 ## Working on this repo
 
@@ -31,6 +31,7 @@ power-ups like the bomb.
 | `checkpoint-04-music-player` | More public-domain tracks (14 total), a music player in Options (now playing, progress and time, previous and next) |
 | `checkpoint-05-backpack` | Backpack bar with 3 power-up slots (slots 2 and 3 unlock for good at 250K and 750K), compact score numbers (75.3K, 1.25M), music paused when turned off, unused sound controls hidden |
 | `checkpoint-06-languages` | Language support: English, Brazilian Portuguese and Spanish, automatic from the phone's language with a Language option in Options |
+| `checkpoint-07-powerups` | Generic power-up system, new laser / prism / booster, smaller bomb (radius 2), 5 backpack slots unlocking at 20K / 50K / 100K / 500K |
 
 ## Project layout
 
@@ -41,7 +42,7 @@ scenes/
   main.tscn/gd     the game screen, wires everything together
   blocks/          a single block (tile) and how it's drawn
   controls/        top tray (HUD), bottom tray (3 piece slots), a tray piece
-  powerups/        the bomb and its effects
+  powerups/        the power-ups' drawings and effects (bomb scene, drawn laser / prism / booster)
   effects/         particle bursts and floating text
   ui/              menus, HUD widgets, backpack, shared UI styling
 assets/music/  public-domain music tracks + CREDITS.md (source and license of each)
@@ -54,7 +55,7 @@ tools/         asset generator scripts (ignored by Godot)
 
 | Name | Script | Role |
 |---|---|---|
-| `GameConfig` | `configs/game_config.gd` | Tuning values (points, bomb radius and fuse, backpack unlock scores) and run state (`current_score_multiplier`, `cell_size`) |
+| `GameConfig` | `configs/game_config.gd` | Tuning values (points, bomb radius and fuse, booster amount, backpack unlock scores) and run state (`current_score_multiplier`, `cell_size`) |
 | `ShapeDefinitions` | `configs/shape_definitions.gd` | Every piece shape (cell offsets) and every power-up's data (`POWERUPS`) |
 | `Settings` | `configs/settings.gd` | Player options and stats in `user://settings.cfg`, creates the `SFX` and `Music` audio buses, `vibrate()` |
 | `Sfx` | `managers/sfx.gd` | Sound effects synthesized in code at startup (no files), a pool of players on the SFX bus |
@@ -78,9 +79,21 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
 - **The drag interface is duck-typed.** Anything with those fields and a `ShapeContainer` Node2D child can be
   dragged: tray pieces and backpack slots (`scenes/ui/backpack_slot.gd`) both are. `drag_controller.gd` doesn't care
   where a piece comes from, except that tray power-ups can also be dropped into the backpack.
-- **Still bomb-specific:** the grid highlight, `can_place_bomb` and `detonate_bomb` are separate code paths behind
-  `is_bomb`. A second power-up would ideally give each power-up scene its own `highlight`, `can_place` and
-  `activate`.
+- **Power-ups are generic.** A piece holds a power-up when its `powerup_name` isn't empty, and the drag controller
+  only calls `grid_manager.show_powerup_highlight`, `can_place_powerup` and `activate_powerup(key, visual, col, row)`.
+  What each one does is a `match` on the key in `grid_manager.gd` ("Power-ups" section):
+  - **bomb:** a round blast, `GameConfig.bomb_radius` (2, a 5×5 area without the corners).
+  - **laser:** clears the target's whole row and column.
+  - **prism:** clears every block with the target's color, and can only be dropped on a block.
+  - **booster:** goes anywhere, raises the multiplier by `GameConfig.booster_multiplier` and refills the combo timer.
+- **The visuals:** each power-up's `visual` in `POWERUPS` is a scene or script with `fit_to(diameter)`,
+  `start_idle()` and `activate(target)` (fly to the target, play a flair, free itself). The grid applies the effect
+  after `activate` ends. The bomb is a scene, and the others extend `scenes/powerups/powerup_visual.gd` and draw
+  themselves. Pieces get theirs from `ShapeDefinitions.make_powerup_visual()`.
+- **Adding a power-up:** an entry in `POWERUPS`, a visual, and a case in `get_powerup_area`, `can_place_powerup` and
+  `activate_powerup`.
+- **Spawning:** one roll per tray slot against the sum of all `spawn_chance` values, then a pick weighted by chance
+  (`roll_powerup_name`).
 
 ### Drawing
 - **Blocks are drawn, not textured.** `scenes/blocks/block_visual.gd` draws the beveled, glossy tile with
@@ -103,7 +116,8 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
 ### Gameplay flow
 - **Game over:** after every drop (`drag_controller.piece_dropped`), `main.gd` checks whether any tray piece fits
   anywhere (`grid_manager.can_fit_anywhere`). Power-ups always fit, and anything in the backpack keeps the game going.
-  For the bomb it first waits for `grid_manager.bomb_detonated`, because cells only free up once the fuse burns down.
+  For a power-up it first waits for `grid_manager.powerup_finished`, because cells only free up once its animation is
+  done.
 - **The combo multiplier** goes up with each cleared line (`grid_manager.cleared_row_or_column`). It resets in
   `main.gd` on `timer_manager.combo_expired`; the HUD only displays it.
 - **Line clears** free their cells immediately, then animate the tiles in a wave from where the piece landed.
@@ -118,8 +132,9 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   changes, and older saves are then ignored.
 
 ### Backpack
-- Slot 1 is always open. `GameConfig.backpack_unlock_scores = [0, 250000, 750000]`. Reaching a score in any game
-  unlocks that slot for good (`Settings.backpack_slots`), and an existing best score counts too.
+- There are 5 slots (`Backpack.SLOT_COUNT`), and slot 1 is always open. The rest unlock at
+  `GameConfig.backpack_unlock_scores = [0, 20000, 50000, 100000, 500000]`. Reaching a score in any game unlocks
+  that slot for good (`Settings.backpack_slots`), and an existing best score counts too.
 - While a tray power-up is dragged, free slots glow. Dropping on one (with some margin around it) stores the power-up
   and uses up the tray piece, like placing it. A stored power-up is dragged onto the grid the same way as from the
   tray, and returns to its slot if dropped elsewhere.
@@ -185,15 +200,14 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
 - **Every batch of 3 tray pieces must be 3 different pieces** (no repeated shape in the same batch). Roll the batch
   as a whole in `bottom_tray`, not one slot at a time.
 - **At most 1 power-up per batch of 3.** Today each slot rolls `spawn_chance` on its own
-  (`ShapeDefinitions.roll_powerup_name`), so 2 or 3 bombs can show up together.
+  (`ShapeDefinitions.roll_powerup_name`), so 2 or 3 power-ups can show up together.
 - The testing shortcut in `randomize_shape()` (always `square_3x3`) goes away as part of this.
 
 ### Power-ups
-- **More power-ups.** Add them as entries in `ShapeDefinitions.POWERUPS`. This is a good time to finish the
-  per-power-up behaviour (`highlight`, `can_place`, `activate` on each power-up scene) so `drag_controller` and
-  `grid_manager` stop branching on `is_bomb`.
-- **Make the bomb smaller.** Its blast is `GameConfig.bomb_radius = 4`, a rounded 9×9 area on a 10×12 board. Confirm
-  with the owner whether "smaller" means the blast area, the sprite, or both.
+- **More ideas:**
+  - a **hammer** that breaks a single block;
+  - a **shuffle** that rerolls the tray;
+  - a **wildcard** 1×1 block that fills any empty cell.
 
 ## Known leftovers
 - `randomize_shape()` in `randomized_block.gd` has a testing shortcut that always returns `square_3x3`. Remove it to
