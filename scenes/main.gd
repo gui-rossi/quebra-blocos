@@ -3,10 +3,12 @@ extends Node
 
 const PauseMenu = preload("res://scenes/ui/pause_menu.gd")
 const GameOverPanel = preload("res://scenes/ui/game_over_panel.gd")
+const Backpack = preload("res://scenes/ui/backpack.gd")
 const MENU_SCENE := "res://scenes/ui/main_menu.tscn"
 
 @export var top_tray_ratio: float = 0.10
-@export var bottom_tray_ratio: float = 0.25
+@export var bottom_tray_ratio: float = 0.20
+@export var backpack_ratio: float = 0.075  # the backpack bar between the board and the tray
 
 @onready var top_tray: Node2D = $CanvasLayer/TopTray
 @onready var bottom_tray: Node2D = $CanvasLayer/BottomTray
@@ -14,6 +16,7 @@ const MENU_SCENE := "res://scenes/ui/main_menu.tscn"
 @onready var timer_manager: Node = $CanvasLayer/TimerManager
 @onready var drag_controller: Node2D = $DragController
 
+var backpack: Control
 var pause_menu: CanvasLayer
 var game_over_panel: CanvasLayer
 var _is_over: bool = false
@@ -30,6 +33,11 @@ func _ready() -> void:
 	add_child(game_over_panel)
 	game_over_panel.play_again_requested.connect(_play_again)
 	game_over_panel.main_menu_requested.connect(_go_to_menu)
+
+	backpack = Backpack.new()
+	$CanvasLayer.add_child(backpack)
+	drag_controller.backpack = backpack
+	grid_manager.score_changed.connect(backpack.update_unlocks)
 
 	top_tray.settings_pressed.connect(_open_pause)
 	top_tray.set_best(Settings.best_score)
@@ -55,6 +63,7 @@ func layout() -> void:
 	var viewport_size = get_viewport().get_visible_rect().size
 	var top_height = viewport_size.y * top_tray_ratio
 	var bottom_height = viewport_size.y * bottom_tray_ratio
+	var backpack_height = viewport_size.y * backpack_ratio
 
 	top_tray.get_node("CanvasLayer/Control").size = Vector2(viewport_size.x, top_height)
 	top_tray.get_node("CanvasLayer/Control").position = Vector2.ZERO
@@ -62,7 +71,10 @@ func layout() -> void:
 	bottom_tray.get_node("CanvasLayer/Control").size = Vector2(viewport_size.x, bottom_height)
 	bottom_tray.get_node("CanvasLayer/Control").position = Vector2(0, viewport_size.y - bottom_height)
 
-	grid_manager.set_reserved_space(top_height, bottom_height)
+	backpack.position = Vector2(0, viewport_size.y - bottom_height - backpack_height)
+	backpack.size = Vector2(viewport_size.x, backpack_height)
+
+	grid_manager.set_reserved_space(top_height, bottom_height + backpack_height)
 
 	var board = grid_manager.get_board_rect()
 	top_tray.align_sides(board.position.x, board.end.x)
@@ -103,8 +115,10 @@ func _play_again() -> void:
 
 # ---------------- Game over ----------------
 
-# Game over when none of the pieces left in the tray fit anywhere
+# Game over when none of the pieces left in the tray fit anywhere and the backpack is empty
 func _is_game_over() -> bool:
+	if backpack.has_items():
+		return false  # a stored power-up can always be used
 	for piece in bottom_tray.get_pieces():
 		if not piece.shape_cells.is_empty() and _can_play(piece):
 			return false
@@ -146,6 +160,7 @@ func _save_run() -> void:
 	SaveGame.save_run({
 		"cells": grid_manager.get_cells_data(),
 		"tray": bottom_tray.get_slots_save(),
+		"backpack": backpack.to_save(),
 		"score": grid_manager.score,
 		"multiplier": GameConfig.current_score_multiplier,
 		"combo_time_left": timer_manager.get_time_left(),
@@ -154,6 +169,7 @@ func _save_run() -> void:
 func _restore(saved: Dictionary) -> void:
 	grid_manager.restore_cells(saved.get("cells", []))
 	bottom_tray.restore_slots(saved.get("tray", []))
+	backpack.restore(saved.get("backpack", []))
 	grid_manager.set_score(int(saved.get("score", 0)))
 
 	var multiplier = int(saved.get("multiplier", 1))

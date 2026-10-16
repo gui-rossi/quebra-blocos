@@ -24,6 +24,7 @@ var body_size: float = 0.0  # width of its body, in the shape container's local 
 # Scale the shape container goes back to after a drag. The container undoes this slot's scale-up, so the
 # piece is drawn at its real on-screen size instead of drawn tiny and stretched (which made it blurry)
 var container_rest_scale: Vector2 = Vector2.ONE
+var container_rest_position: Vector2 = Vector2.ZERO  # where the container sits when it's back in the slot
 
 func _ready() -> void:
 	# the circle texture is only kept for sizing and touch detection, _draw paints the slot

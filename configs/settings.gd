@@ -15,6 +15,7 @@ var music_volume: float = 0.6  # 0..1
 var vibration: bool = true
 var effects_high: bool = true  # false = fewer particles and no screen shake
 var best_score: int = 0
+var backpack_slots: int = 1  # unlocked backpack slots, see GameConfig.backpack_unlock_scores
 
 func _ready() -> void:
 	_ensure_bus(SFX_BUS)
@@ -53,6 +54,7 @@ func load_settings() -> void:
 	vibration = cfg.get_value("game", "vibration", vibration)
 	effects_high = cfg.get_value("game", "effects_high", effects_high)
 	best_score = cfg.get_value("stats", "best_score", best_score)
+	backpack_slots = cfg.get_value("stats", "backpack_slots", backpack_slots)
 
 func save_settings() -> void:
 	var cfg = ConfigFile.new()
@@ -63,6 +65,7 @@ func save_settings() -> void:
 	cfg.set_value("game", "vibration", vibration)
 	cfg.set_value("game", "effects_high", effects_high)
 	cfg.set_value("stats", "best_score", best_score)
+	cfg.set_value("stats", "backpack_slots", backpack_slots)
 	cfg.save(PATH)
 
 # Buses are created here so the project doesn't need a bus layout file

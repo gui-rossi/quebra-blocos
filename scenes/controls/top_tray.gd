@@ -7,6 +7,7 @@ signal settings_pressed
 
 const GearButton = preload("res://scenes/ui/gear_button.gd")
 const ComboBadge = preload("res://scenes/ui/combo_badge.gd")
+const NumberFormat = preload("res://configs/number_format.gd")
 
 const HUD_ITEM_RATIO := 0.78  # gear and badge size, relative to the tray's height
 const HUD_ITEM_MAX := 100.0
@@ -86,7 +87,7 @@ func set_score(new_score: int) -> void:
 		_punch_score()
 
 func set_best(best: int) -> void:
-	_best_label.text = "BEST %d" % best
+	_best_label.text = "BEST " + NumberFormat.compact(best)
 
 func set_combo(new_combo: int) -> void:
 	_badge.set_multiplier(new_combo)
@@ -105,7 +106,7 @@ func update_combo_timer(remaining: float, total: float = 5.0) -> void:
 
 func _show_score(value: float) -> void:
 	_displayed_score = value
-	_score_label.text = "%d" % int(value)
+	_score_label.text = NumberFormat.compact(int(value))
 
 func _punch_score() -> void:
 	_score_label.pivot_offset = _score_label.size / 2.0

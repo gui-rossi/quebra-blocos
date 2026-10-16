@@ -18,6 +18,7 @@ const EXPLOSION_SOUND: AudioStream = preload("res://scenes/powerups/bomb_explosi
 const BlockBurst = preload("res://scenes/effects/block_burst.gd")
 const FloatingText = preload("res://scenes/effects/floating_text.gd")
 const Palette = preload("res://configs/palette.gd")
+const NumberFormat = preload("res://configs/number_format.gd")
 
 # Banner shown when several lines break at once, by number of lines
 const MULTI_LINE_BANNERS := {2: "Great!", 3: "Amazing!", 4: "Unbelievable!"}
@@ -227,7 +228,7 @@ func check_and_clear_lines(focus: Vector2i = Vector2i.ZERO) -> void:
 	score_changed.emit(score)
 
 	var lines = rows_to_clear.size() + cols_to_clear.size()
-	_spawn_floating_text("+%d" % gained, popup_position, Color(1, 0.9, 0.35), 44)
+	_spawn_floating_text("+" + NumberFormat.compact(gained), popup_position, Color(1, 0.9, 0.35), 44)
 	if lines >= 2:
 		var banner = MULTI_LINE_BANNERS.get(mini(lines, 4))
 		_spawn_floating_text(banner, cell_to_local_center(Vector2i(MAX_COLUMNS, MAX_ROWS) / 2), Color(0.55, 1, 0.9), 72)

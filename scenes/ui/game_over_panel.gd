@@ -6,6 +6,7 @@ signal play_again_requested
 signal main_menu_requested
 
 const UiStyle = preload("res://scenes/ui/ui_style.gd")
+const NumberFormat = preload("res://configs/number_format.gd")
 
 var _box: PanelContainer
 var _score_label: Label
@@ -41,14 +42,14 @@ func _ready() -> void:
 	add_child(UiStyle.overlay(_box))
 
 func show_result(score: int, best: int, is_new_best: bool) -> void:
-	_best_label.text = "Best: %d" % best
+	_best_label.text = "Best: " + NumberFormat.compact(best)
 	_new_best_label.visible = is_new_best
 	visible = true
 	UiStyle.pop_in(_box)
 
 	# the score counts up from zero
 	var tween = create_tween()
-	tween.tween_method(func(v: float): _score_label.text = "%d" % int(v), 0.0, float(score), 0.8).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tween.tween_method(func(v: float): _score_label.text = NumberFormat.compact(int(v)), 0.0, float(score), 0.8).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 
 	if is_new_best:
 		# keep the "New best!" text pulsing

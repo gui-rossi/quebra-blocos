@@ -3,6 +3,7 @@ extends Control
 # First screen: continue the saved run, start a new one, or change options
 
 const UiStyle = preload("res://scenes/ui/ui_style.gd")
+const NumberFormat = preload("res://configs/number_format.gd")
 const OptionsPanel = preload("res://scenes/ui/options_panel.gd")
 const Background = preload("res://scenes/ui/background.gd")
 const GAME_SCENE := "res://scenes/main.tscn"
@@ -29,7 +30,7 @@ func _ready() -> void:
 
 	_title = UiStyle.label("Quebra\nBlocos", 110, Color(1, 0.9, 0.35), 16)
 	_menu.add_child(_title)
-	_menu.add_child(UiStyle.label("Best: %d" % Settings.best_score, 34, UiStyle.TEXT_SOFT))
+	_menu.add_child(UiStyle.label("Best: " + NumberFormat.compact(Settings.best_score), 34, UiStyle.TEXT_SOFT))
 	_menu.add_child(_spacer(40))
 
 	var resume = UiStyle.button("Continue")
