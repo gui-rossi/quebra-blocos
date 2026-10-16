@@ -153,6 +153,38 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
 - **Scores are shown with `NumberFormat.compact()`**: full below 10,000, then 75.3K, 253K, 1.25M. Values are cut
   down, never rounded up.
 
+## Plans for the future
+
+### Next up: language support (en, pt_BR, es)
+- **Translations:** `localization/strings.csv` with keys and `en`, `pt_BR` and `es` columns, registered under Project
+  Settings → Localization. Every visible string becomes a key. Controls translate their `text` on their own, and
+  strings with values use `tr("KEY") % value`.
+- **Detection:** on first launch the game follows the phone's language (`OS.get_locale()`). Godot picks the closest
+  translation we ship, and anything we don't have falls back to English.
+- **Language option** in Options: "Automatic" (the default, follows the phone) followed by each language written in
+  its own language (English, Português (Brasil), Español). It's saved in `Settings` and applies right away, with no
+  restart.
+- **Watch for:** longer text (Portuguese and Spanish run about 30% longer, so check button and HUD widths). Music
+  titles stay untranslated. Languages outside Latin, Cyrillic and Greek would need extra Noto fonts, and
+  right-to-left languages are out of scope for now.
+
+### Piece randomizer
+- **Difficulty curve:** spawn smaller pieces first, then bring in bigger ones as the game goes on. Possible measures
+  of progress: score, pieces placed, or lines cleared. Weight each shape in `ShapeDefinitions.SHAPES` by its size
+  (cell count) and shift the weights as progress grows, instead of the current uniform `get_random_shape_name()`.
+- **Every batch of 3 tray pieces must be 3 different pieces** (no repeated shape in the same batch). Roll the batch
+  as a whole in `bottom_tray`, not one slot at a time.
+- **At most 1 power-up per batch of 3.** Today each slot rolls `spawn_chance` on its own
+  (`ShapeDefinitions.roll_powerup_name`), so 2 or 3 bombs can show up together.
+- The testing shortcut in `randomize_shape()` (always `square_3x3`) goes away as part of this.
+
+### Power-ups
+- **More power-ups.** Add them as entries in `ShapeDefinitions.POWERUPS`. This is a good time to finish the
+  per-power-up behaviour (`highlight`, `can_place`, `activate` on each power-up scene) so `drag_controller` and
+  `grid_manager` stop branching on `is_bomb`.
+- **Make the bomb smaller.** Its blast is `GameConfig.bomb_radius = 4`, a rounded 9×9 area on a 10×12 board. Confirm
+  with the owner whether "smaller" means the blast area, the sprite, or both.
+
 ## Known leftovers
 - `randomize_shape()` in `randomized_block.gd` has a testing shortcut that always returns `square_3x3`. Remove it to
   get normal piece variety.
