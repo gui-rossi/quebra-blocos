@@ -234,6 +234,18 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   - **Menu screen:** a skins screen with 3 tabs (board, trays, pieces). Each skin is a small live preview, a few
     blocks on a mini board, so it reuses the real drawing code instead of image files.
 
+### Crown next to the best score
+- **A small gold crown icon** to the left of the best score in the top tray (`top_tray.gd`, the "BEST 12K" label
+  under the score), so the record reads at a glance in any language.
+- **Draw it in code**, like the other HUD icons (a Control with `_draw`): a 3-point crown with a dark outline, gold
+  fill with top-left lighting, and small gems on the points. It's sized from the label's font height so it scales
+  with it.
+- **Layout:** put the crown and the label in an `HBoxContainer` that replaces the plain best-score label in the score
+  `VBoxContainer`, so the pair stays centred under the score. The translated "BEST" / "RECORDE" / "RÉCORD" text stays
+  next to it.
+- **Optional:** the same crown on the main menu's and game over's best score, and a short shine on the crown when a
+  new best is reached during a game.
+
 ## Known leftovers
 - `randomize_shape()` in `randomized_block.gd` has a testing shortcut that always returns `square_3x3`. Remove it to
   get normal piece variety.
