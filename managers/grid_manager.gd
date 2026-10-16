@@ -3,6 +3,7 @@ extends Node2D
 signal score_changed(new_score: int)
 signal combo_changed(new_multiplier: int)
 signal start_combo_timer()
+signal bomb_detonated()  # the blast went off and its cells are free
 
 var score: int = 0
 
@@ -14,6 +15,12 @@ var score: int = 0
 const BLOCK_SPACE_SCENE: PackedScene = preload("res://scenes/blocks/block_space.tscn")
 const ExplosionEffect = preload("res://scenes/powerups/explosion_effect.gd")
 const EXPLOSION_SOUND: AudioStream = preload("res://scenes/powerups/bomb_explosion.wav")
+const BlockBurst = preload("res://scenes/effects/block_burst.gd")
+const FloatingText = preload("res://scenes/effects/floating_text.gd")
+
+# Banner shown when several lines break at once, by number of lines
+const MULTI_LINE_BANNERS := {2: "Great!", 3: "Amazing!", 4: "Unbelievable!"}
+
 var cell_size: float
 var grid_offset: Vector2
 
@@ -28,6 +35,7 @@ var _explosion_player: AudioStreamPlayer
 func _ready() -> void:
 	_explosion_player = AudioStreamPlayer.new()
 	_explosion_player.stream = EXPLOSION_SOUND
+	_explosion_player.bus = Settings.SFX_BUS
 	add_child(_explosion_player)
 
 func set_reserved_space(top: float, bottom: float) -> void:
@@ -95,20 +103,69 @@ func can_place_shape(shape: Array, origin_col: int, origin_row: int) -> bool:
 			return false
 	return true
 
+# Can the shape go anywhere on the board right now? Used to detect game over
+func can_fit_anywhere(shape: Array) -> bool:
+	for r in range(MAX_ROWS):
+		for c in range(MAX_COLUMNS):
+			if can_place_shape(shape, c, r):
+				return true
+	return false
+
 func place_shape(shape: Array, origin_col: int, origin_row: int, color: Color) -> void:
-	for offset in shape:
-		var c = origin_col + offset.x
-		var r = origin_row + offset.y
-		var tile = BLOCK_SPACE_SCENE.instantiate()
-		$GridCells.add_child(tile)
-		tile.block_size = Vector2(cell_size - cell_gap, cell_size - cell_gap)
-		tile.position = grid_offset + Vector2(c * cell_size, r * cell_size) + Vector2(cell_gap, cell_gap) / 2.0
-		tile.modulate = color
-		grid_data[r][c] = tile
+	var center := Vector2.ZERO
+	for i in range(shape.size()):
+		var c = origin_col + shape[i].x
+		var r = origin_row + shape[i].y
+		var tile = _spawn_tile(c, r, color)
+		_animate_tile_placed(tile, i * 0.02)
+		center += cell_to_local_center(Vector2i(c, r))
+	center /= shape.size()
 
-	check_and_clear_lines()
+	_spawn_burst(center, Color(1, 1, 1, 0.6), 6, 0.35)
+	Sfx.play("place", randf_range(0.95, 1.05))
+	Settings.vibrate(8)
 
-func check_and_clear_lines() -> void:
+	check_and_clear_lines(Vector2i(origin_col, origin_row) + _shape_center_offset(shape))
+
+# Puts saved tiles back on the board, without effects or clearing lines
+func restore_cells(cells: Array) -> void:
+	for cell in cells:
+		var c = int(cell.col)
+		var r = int(cell.row)
+		if is_in_grid(c, r) and grid_data[r][c] == null:
+			_spawn_tile(c, r, Color.html(cell.color))
+
+# The board as plain data, for saving: [{col, row, color}]
+func get_cells_data() -> Array:
+	var cells := []
+	for r in range(MAX_ROWS):
+		for c in range(MAX_COLUMNS):
+			var tile = grid_data[r][c]
+			if tile != null:
+				cells.append({"col": c, "row": r, "color": tile.modulate.to_html(true)})
+	return cells
+
+func set_score(value: int) -> void:
+	score = value
+	score_changed.emit(score)
+
+func _spawn_tile(col: int, row: int, color: Color) -> Node2D:
+	var tile = BLOCK_SPACE_SCENE.instantiate()
+	$GridCells.add_child(tile)
+	tile.block_size = Vector2(cell_size - cell_gap, cell_size - cell_gap)
+	tile.position = grid_offset + Vector2(col * cell_size, row * cell_size) + Vector2(cell_gap, cell_gap) / 2.0
+	tile.modulate = color
+	grid_data[row][col] = tile
+	return tile
+
+func _shape_center_offset(shape: Array) -> Vector2i:
+	var max_cell = Vector2i.ZERO
+	for cell in shape:
+		max_cell = Vector2i(maxi(max_cell.x, cell.x), maxi(max_cell.y, cell.y))
+	return max_cell / 2
+
+# `focus` is the cell the clear spreads out from (where the piece landed)
+func check_and_clear_lines(focus: Vector2i = Vector2i.ZERO) -> void:
 	var rows_to_clear: Array = []
 	var cols_to_clear: Array = []
 
@@ -137,8 +194,20 @@ func check_and_clear_lines() -> void:
 		for r in range(MAX_ROWS):
 			cells_to_clear[Vector2i(c, r)] = true
 
+	# the cells are free right away, the tiles break in a wave spreading out from where the piece landed
+	var popup_position := Vector2.ZERO
 	for cell in cells_to_clear.keys():
-		_clear_cell(cell.x, cell.y)
+		var tile = grid_data[cell.y][cell.x]
+		grid_data[cell.y][cell.x] = null
+		popup_position += cell_to_local_center(cell)
+		if tile:
+			_animate_tile_destroyed(tile, Vector2(cell - focus).length() * 0.025)
+	popup_position /= cells_to_clear.size()
+
+	for r in rows_to_clear:
+		_flash_line(Vector2(0, r), Vector2(MAX_COLUMNS, 1))
+	for c in cols_to_clear:
+		_flash_line(Vector2(c, 0), Vector2(1, MAX_ROWS))
 
 	# score each line using the current global combo multiplier, then bump it
 	# for the next line - persists across calls until your combo timer resets it
@@ -153,11 +222,16 @@ func check_and_clear_lines() -> void:
 	score += gained
 	score_changed.emit(score)
 
-func _clear_cell(col: int, row: int) -> void:
-	var tile = grid_data[row][col]
-	if tile:
-		tile.queue_free()
-		grid_data[row][col] = null
+	var lines = rows_to_clear.size() + cols_to_clear.size()
+	_spawn_floating_text("+%d" % gained, popup_position, Color(1, 0.9, 0.35), 44)
+	if lines >= 2:
+		var banner = MULTI_LINE_BANNERS.get(mini(lines, 4))
+		_spawn_floating_text(banner, cell_to_local_center(Vector2i(MAX_COLUMNS, MAX_ROWS) / 2), Color(0.55, 1, 0.9), 72)
+
+	_shake(cell_size * 0.05 * lines)
+	# the chime climbs with the multiplier so a long combo sounds like it
+	Sfx.play("line_clear", minf(1.0 + 0.08 * (GameConfig.current_score_multiplier - 2), 2.0))
+	Settings.vibrate(20)
 
 # ---------------- Bomb ----------------
 
@@ -184,6 +258,7 @@ func detonate_bomb(bomb: Node2D, center_col: int, center_row: int) -> void:
 	bomb.reparent(self, true)
 	await bomb.detonate(to_global(cell_to_local_center(Vector2i(center_col, center_row))))
 	explode_at(center_col, center_row)
+	bomb_detonated.emit()
 
 func explode_at(center_col: int, center_row: int) -> void:
 	var center = Vector2i(center_col, center_row)
@@ -199,7 +274,8 @@ func explode_at(center_col: int, center_row: int) -> void:
 		_animate_tile_destroyed(tile, Vector2(cell - center).length() * 0.05)
 
 	_spawn_explosion(center)
-	_shake()
+	_shake(cell_size * 0.04 * (GameConfig.bomb_radius + 1))  # bigger blasts shake harder
+	Settings.vibrate(40)
 	_explosion_player.pitch_scale = randf_range(0.9, 1.1)  # so repeated blasts don't sound identical
 	_explosion_player.play()
 
@@ -212,8 +288,12 @@ func _animate_tile_destroyed(tile: Node2D, delay: float) -> void:
 	var control: Control = tile.get_node("Control")
 	control.pivot_offset = control.size / 2.0
 
+	var color: Color = tile.modulate
+	var tile_center = tile.position + control.size / 2.0
+
 	var tween = tile.create_tween()
 	tween.tween_interval(delay)
+	tween.tween_callback(_spawn_burst.bind(tile_center, color, 14, 1.0))
 	tween.tween_property(tile, "modulate", Color(1, 0.9, 0.6), 0.06)
 	tween.parallel().tween_property(control, "scale", Vector2(1.2, 1.2), 0.06)
 	tween.tween_property(control, "scale", Vector2.ZERO, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
@@ -227,12 +307,56 @@ func _spawn_explosion(center: Vector2i) -> void:
 	add_child(effect)
 	effect.play()
 
-func _shake() -> void:
+# A placed tile pops in: starts small, overshoots, settles
+func _animate_tile_placed(tile: Node2D, delay: float) -> void:
+	var control: Control = tile.get_node("Control")
+	control.pivot_offset = control.size / 2.0
+	control.scale = Vector2(0.7, 0.7)
+
+	var tween = tile.create_tween()
+	tween.tween_interval(delay)
+	tween.tween_property(control, "scale", Vector2(1.1, 1.1), 0.08).set_ease(Tween.EASE_OUT)
+	tween.tween_property(control, "scale", Vector2.ONE, 0.08).set_ease(Tween.EASE_IN_OUT)
+
+func _spawn_burst(local_position: Vector2, color: Color, amount: int, speed: float) -> void:
+	var burst = BlockBurst.new()
+	burst.position = local_position
+	burst.color = color
+	burst.size = cell_size
+	burst.amount = amount
+	burst.speed = speed
+	add_child(burst)
+	burst.play()
+
+func _spawn_floating_text(text: String, local_position: Vector2, color: Color, font_size: int) -> void:
+	var popup = FloatingText.new()
+	popup.position = local_position
+	popup.text = text
+	popup.color = color
+	popup.font_size = font_size
+	add_child(popup)
+	popup.play()
+
+# Quick white flash over a cleared row or column, `cell` and `cells` in grid cells
+func _flash_line(cell: Vector2, cells: Vector2) -> void:
+	var flash = ColorRect.new()
+	flash.color = Color(1, 1, 1, 0.7)
+	flash.position = grid_offset + cell * cell_size
+	flash.size = cells * cell_size
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(flash)
+
+	var tween = flash.create_tween()
+	tween.tween_property(flash, "color:a", 0.0, 0.3).set_ease(Tween.EASE_OUT)
+	tween.tween_callback(flash.queue_free)
+
+func _shake(strength: float) -> void:
+	if not Settings.effects_high:
+		return
 	if _shake_tween:
 		_shake_tween.kill()
 	position = Vector2.ZERO
 
-	var strength = cell_size * 0.04 * (GameConfig.bomb_radius + 1)  # bigger blasts shake harder
 	_shake_tween = create_tween()
 	for i in range(6):
 		var offset = Vector2(randf_range(-1, 1), randf_range(-1, 1)) * strength * (1.0 - i / 6.0)

@@ -8,6 +8,7 @@ const BOMB_SCENE: PackedScene = preload("res://scenes/powerups/powerup_bomb.tscn
 
 var shape_cells: Array = []
 var piece_color: Color = Color.DARK_GREEN
+var shape_name: String = ""  # key in ShapeDefinitions.SHAPES, "" for a power-up
 var powerup_name: String = ""  # key in ShapeDefinitions.POWERUPS, "" for a regular shape
 var is_bomb: bool = false
 var bomb: Node2D = null
@@ -21,26 +22,58 @@ func _ready() -> void:
 	pass  # don't build here - GameConfig.cell_size isn't set yet at this point
 
 func randomize_shape() -> void:
-	powerup_name = ShapeDefinitions.roll_powerup_name()
-	is_bomb = powerup_name == "bomb"
-
-	if powerup_name != "":
-		var powerup = ShapeDefinitions.get_powerup(powerup_name)
-		shape_cells = powerup.cells
-		drag_size_cells = powerup.drag_size_cells
-		drag_alpha = powerup.drag_alpha
+	var rolled_powerup = ShapeDefinitions.roll_powerup_name()
+	if rolled_powerup != "":
+		_apply_powerup(rolled_powerup)
 		return
 
-	drag_size_cells = 0.0
-	drag_alpha = ShapeDefinitions.SHAPE_DRAG_ALPHA
-
-	shape_cells = ShapeDefinitions.get_shape("square_3x3")
+	_apply_shape("square_3x3")
 	return
-	
-	var shape_name = ShapeDefinitions.get_random_shape_name()
-	shape_cells = ShapeDefinitions.get_shape(shape_name)
+
+	_apply_shape(ShapeDefinitions.get_random_shape_name())
 	#piece_color = Color(randf(), randf(), randf())
 	piece_color = Color.from_rgba8(17, 138, 178)
+
+# The slot as plain data, for saving
+func to_save() -> Dictionary:
+	return {
+		"used": shape_cells.is_empty(),
+		"shape": shape_name,
+		"powerup": powerup_name,
+		"color": piece_color.to_html(true),
+	}
+
+# Rebuilds the slot from to_save() data (call build_piece after, unless it's used)
+func set_from_save(slot: Dictionary) -> void:
+	if slot.get("used", true):
+		shape_cells = []
+		shape_name = ""
+		powerup_name = ""
+		is_bomb = false
+		return
+
+	if slot.get("powerup", "") != "":
+		_apply_powerup(slot.powerup)
+	else:
+		_apply_shape(slot.get("shape", ""))
+		piece_color = Color.html(slot.get("color", piece_color.to_html(true)))
+
+func _apply_powerup(key: String) -> void:
+	var powerup = ShapeDefinitions.get_powerup(key)
+	powerup_name = key
+	shape_name = ""
+	is_bomb = key == "bomb"
+	shape_cells = powerup.cells
+	drag_size_cells = powerup.drag_size_cells
+	drag_alpha = powerup.drag_alpha
+
+func _apply_shape(key: String) -> void:
+	shape_name = key
+	powerup_name = ""
+	is_bomb = false
+	shape_cells = ShapeDefinitions.get_shape(key)
+	drag_size_cells = 0.0
+	drag_alpha = ShapeDefinitions.SHAPE_DRAG_ALPHA
 
 func build_piece(shape_scale_factor: float = 1.0) -> void:
 	for child in shape_container.get_children():

@@ -1,5 +1,7 @@
 extends Node2D
 
+signal piece_dropped(was_bomb: bool)  # a piece was placed on the grid (and the tray refilled if needed)
+
 @export var grid_manager_path: NodePath
 @export var bottom_tray_path: NodePath
 @export var drag_layer_path: NodePath
@@ -87,6 +89,7 @@ func _end_drag() -> void:
 		_drag_scale_tween.kill()
 		_drag_scale_tween = null
 
+	var was_bomb: bool = piece.is_bomb
 	var valid: bool
 	if piece.is_bomb:
 		valid = grid_manager.can_place_bomb(origin_cell.x, origin_cell.y)
@@ -109,6 +112,21 @@ func _end_drag() -> void:
 		# invalid drop - snap the shape back to its circle
 		_return_container(container, piece)
 
+	grid_manager.clear_highlight()
+	dragging_container = null
+	dragging_piece = null
+
+	if valid:
+		piece_dropped.emit(was_bomb)
+
+# Puts a piece that's being dragged back in its tray slot (e.g. when the game gets paused)
+func cancel_drag() -> void:
+	if dragging_container == null:
+		return
+	if _drag_scale_tween:
+		_drag_scale_tween.kill()
+		_drag_scale_tween = null
+	_return_container(dragging_container, dragging_piece)
 	grid_manager.clear_highlight()
 	dragging_container = null
 	dragging_piece = null
