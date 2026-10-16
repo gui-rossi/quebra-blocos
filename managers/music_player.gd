@@ -33,6 +33,7 @@ var _current := 0  # which of the two players is playing
 var _queue: Array = []  # tracks left before the playlist reshuffles
 var _history: Array = []  # tracks played, the last one is the current track
 var _fade_tween: Tween
+var _enabled: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # keeps playing in the pause menu
@@ -43,7 +44,25 @@ func _ready() -> void:
 		player.finished.connect(_on_finished.bind(player))
 		add_child(player)
 		_players.append(player)
-	next_track(FADE_TIME)
+
+	Settings.changed.connect(_sync_enabled)
+	_sync_enabled()
+
+# Music turned off pauses playback completely (not just muted), so it costs no CPU. Turned back on, it resumes
+func _sync_enabled() -> void:
+	if Settings.music_enabled == _enabled:
+		return
+	_enabled = Settings.music_enabled
+	set_process(_enabled)
+	for player in _players:
+		player.stream_paused = not _enabled
+	if _fade_tween and _fade_tween.is_valid():
+		if _enabled:
+			_fade_tween.play()
+		else:
+			_fade_tween.pause()
+	if _enabled and _history.is_empty():
+		next_track(FADE_TIME)  # first time music is on (it was off when the game started)
 
 # Starts the next track while the current one is still in its last seconds, so they overlap
 func _process(_delta: float) -> void:
@@ -56,6 +75,8 @@ func _process(_delta: float) -> void:
 # ---------------- Controls (used by the music player in the options) ----------------
 
 func next_track(fade: float = SKIP_FADE_TIME) -> void:
+	if not _enabled:
+		return
 	var track = _next_from_queue()
 	if track.is_empty():
 		return
@@ -66,6 +87,8 @@ func next_track(fade: float = SKIP_FADE_TIME) -> void:
 
 # Back to the previous track, or to the start of this one if it's been playing for a few seconds
 func previous_track() -> void:
+	if not _enabled:
+		return
 	if get_position() > RESTART_THRESHOLD or _history.size() < 2:
 		_players[_current].seek(0.0)
 		return

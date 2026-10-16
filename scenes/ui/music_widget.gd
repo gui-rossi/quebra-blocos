@@ -50,6 +50,10 @@ func _ready() -> void:
 	MusicPlayer.track_changed.connect(_on_track_changed)
 	_on_track_changed(MusicPlayer.get_title())
 
+	# only update the time while it can be seen
+	visibility_changed.connect(func(): set_process(is_visible_in_tree()))
+	set_process(is_visible_in_tree())
+
 func _process(_delta: float) -> void:
 	if not is_visible_in_tree():
 		return
