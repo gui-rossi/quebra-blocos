@@ -13,9 +13,6 @@ var dragging_piece: Node2D = null  # the RandomizedBlock this container belongs 
 var drag_shape_half: Vector2i = Vector2i.ZERO  # half-extents of the shape's bounding box
 var _drag_scale_tween: Tween
 
-# On-screen size of a dragged bomb's body, in grid cells
-const BOMB_DRAG_SIZE_CELLS: float = 0.9
-
 func _ready() -> void:
 	grid_manager = get_node(grid_manager_path)
 	bottom_tray = get_node(bottom_tray_path)
@@ -73,15 +70,13 @@ func _start_drag(piece: Node2D) -> void:
 	drag_shape_half = Vector2i(bounds.x / 2, bounds.y / 2)
 
 	dragging_container.reparent(drag_layer, true)
+	dragging_container.modulate.a = piece.drag_alpha
 
-	if piece.is_bomb:
-		dragging_container.modulate.a = 0.85
-		# the bomb is big in the tray, shrink it to about a cell so the blast area stays visible
-		var target_scale = dragging_container.scale * (GameConfig.cell_size * BOMB_DRAG_SIZE_CELLS) / (piece.bomb.diameter * dragging_container.scale.x)
+	if piece.drag_size_cells > 0.0:
+		# resize the body to drag_size_cells grid cells wide on screen
+		var target_scale = dragging_container.scale * (GameConfig.cell_size * piece.drag_size_cells) / (piece.body_size * dragging_container.scale.x)
 		_drag_scale_tween = dragging_container.create_tween()
 		_drag_scale_tween.tween_property(dragging_container, "scale", target_scale, 0.1).set_ease(Tween.EASE_OUT)
-	else:
-		dragging_container.modulate.a = 0.6
 
 func _end_drag() -> void:
 	var container = dragging_container

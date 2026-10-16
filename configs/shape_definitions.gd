@@ -25,9 +25,38 @@ const SHAPES := {
 	"corner_j":     [Vector2i(2,0), Vector2i(2,1), Vector2i(2,2), Vector2i(1,0), Vector2i(0,0)],
 }
 
+# Power-ups that can show up in a tray slot instead of a shape
+#   cells:           grid cells the piece occupies while dragged, offsets from origin (0,0)
+#   spawn_chance:    chance of each tray slot rolling this power-up instead of a shape
+#   tray_size_ratio: size of its body inside the tray circle, relative to the circle's texture
+#   drag_size_cells: on-screen size of its body while dragged, in grid cells (0 = keep the tray size)
+#   drag_alpha:      opacity while dragged
+const POWERUPS := {
+	"bomb": {
+		"cells": [Vector2i(0,0)],  # a single cell: the blast center, also keeps the slot "in use" for the tray
+		"spawn_chance": 0.1,
+		"tray_size_ratio": 0.42,
+		"drag_size_cells": 0.9,  # big in the tray, shrinks to about a cell so the blast area stays visible
+		"drag_alpha": 0.85,
+	},
+}
+
+# Opacity of a regular shape while dragged
+const SHAPE_DRAG_ALPHA: float = 0.6
+
 func get_random_shape_name() -> String:
 	var keys = SHAPES.keys()
 	return keys[randi() % keys.size()]
 
 func get_shape(shape_name: String) -> Array:
 	return SHAPES.get(shape_name, [Vector2i(0,0)])
+
+# Rolls each power-up's spawn chance in turn, returns the first that hits or "" for a regular shape
+func roll_powerup_name() -> String:
+	for powerup_name in POWERUPS:
+		if randf() < POWERUPS[powerup_name].spawn_chance:
+			return powerup_name
+	return ""
+
+func get_powerup(powerup_name: String) -> Dictionary:
+	return POWERUPS.get(powerup_name, {})
