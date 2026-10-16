@@ -11,6 +11,8 @@ const MusicWidget = preload("res://scenes/ui/music_widget.gd")
 var _sfx_volume: Control
 var _music_section: Control
 var _language_button: Button
+var _sfx_toggle: CheckButton
+var _music_toggle: CheckButton
 
 func _ready() -> void:
 	add_theme_stylebox_override("panel", UiStyle.box(UiStyle.PANEL_BG, 32, 32.0))
@@ -19,17 +21,19 @@ func _ready() -> void:
 	add_child(column)
 	column.add_child(UiStyle.label("OPTIONS_TITLE", 52, UiStyle.TEXT, 8))
 
-	column.add_child(_toggle("OPTIONS_SOUND_EFFECTS", Settings.sfx_enabled, func(on): Settings.sfx_enabled = on))
+	_sfx_toggle = _toggle("OPTIONS_SOUND_EFFECTS", Settings.sfx_enabled, func(on): Settings.sfx_enabled = on)
+	column.add_child(_sfx_toggle)
 	_sfx_volume = _slider(Settings.sfx_volume, func(v): Settings.sfx_volume = v)
 	column.add_child(_sfx_volume)
 
-	column.add_child(_toggle("OPTIONS_MUSIC", Settings.music_enabled, func(on): Settings.music_enabled = on))
+	_music_toggle = _toggle("OPTIONS_MUSIC", Settings.music_enabled, func(on): Settings.music_enabled = on)
+	column.add_child(_music_toggle)
 	_music_section = UiStyle.vbox(18)
 	_music_section.add_child(_slider(Settings.music_volume, func(v): Settings.music_volume = v))
 	_music_section.add_child(MusicWidget.new())
 	column.add_child(_music_section)
 	column.add_child(_toggle("OPTIONS_VIBRATION", Settings.vibration, func(on): Settings.vibration = on))
-	column.add_child(_toggle("OPTIONS_FANCY_EFFECTS", Settings.effects_high, func(on): Settings.effects_high = on))
+	column.add_child(_toggle("OPTIONS_EFFECTS", Settings.effects_high, func(on): Settings.effects_high = on))
 
 	# tapping cycles Automatic -> English -> Português -> Español -> Automatic
 	_language_button = UiStyle.button("", UiStyle.PRIMARY.darkened(0.25), 28)
@@ -44,8 +48,8 @@ func _ready() -> void:
 	column.add_child(back)
 
 	# also follows the pause menu's quick sound toggle
-	Settings.changed.connect(_sync_sections)
-	_sync_sections()
+	Settings.changed.connect(_sync_with_settings)
+	_sync_with_settings()
 
 func _next_language() -> void:
 	var codes = [""] + Settings.LANGUAGES.map(func(entry): return entry[0])
@@ -63,7 +67,10 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_TRANSLATION_CHANGED and _language_button:
 		_update_language_button()
 
-func _sync_sections() -> void:
+# Keeps the switches and sections in line with Settings, e.g. after the pause menu's "Sound: Off"
+func _sync_with_settings() -> void:
+	_sfx_toggle.set_pressed_no_signal(Settings.sfx_enabled)
+	_music_toggle.set_pressed_no_signal(Settings.music_enabled)
 	_sfx_volume.visible = Settings.sfx_enabled
 	_music_section.visible = Settings.music_enabled
 
