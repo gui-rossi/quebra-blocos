@@ -210,6 +210,28 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   as a whole in `bottom_tray`, not one slot at a time.
 - The testing shortcut in `randomize_shape()` (always `square_3x3`) goes away as part of this.
 
+### Skins (main menu)
+- **A new "Skins" section in the main menu** for unlocking and picking cosmetic looks for:
+  - **the board:** panel, border, empty cells and background;
+  - **the top and bottom trays:** HUD discs, tray slots and the backpack bar;
+  - **the pieces:** block colors and block style, e.g. glossy, flat, pixel or glass.
+- **Locked skins** show a padlock and what unlocks them, the same pattern as the backpack slots. Unlocks are
+  permanent and saved in `Settings`.
+- **Still to decide with the owner:** how skins are unlocked (score milestones, lines cleared, games played,
+  achievements, or a currency earned by playing) and how many skins each category starts with.
+- **How it could be built:**
+  - **Skin data:** today every color is a constant in `configs/palette.gd`. Each skin would become a set of those
+    values (a Resource or a dictionary per skin), read through a `Skins` autoload instead of the constants.
+  - **Who reads it:** `block_visual.gd`, `grid_manager._draw` (the board), `background.gd`, the tray slots
+    (`randomized_block._draw`), the HUD discs and the backpack slots would read the current skin. They'd redraw
+    when it changes (a `Skins.changed` signal).
+  - **Block styles** beyond colors (pixel, glass) would be different draw paths in `block_visual.gd`, selected by
+    the piece skin.
+  - **Saving:** the selected skin per category and the unlocked skins go in `Settings` (`user://settings.cfg`), not
+    in the run save.
+  - **Menu screen:** a skins screen with 3 tabs (board, trays, pieces). Each skin is a small live preview, a few
+    blocks on a mini board, so it reuses the real drawing code instead of image files.
+
 ## Known leftovers
 - `randomize_shape()` in `randomized_block.gd` has a testing shortcut that always returns `square_3x3`. Remove it to
   get normal piece variety.
