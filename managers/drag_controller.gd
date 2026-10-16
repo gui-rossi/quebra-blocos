@@ -138,5 +138,5 @@ func cancel_drag() -> void:
 func _return_container(container: Node2D, piece: Node2D) -> void:
 	container.reparent(piece, false)
 	container.position = Vector2.ZERO
-	container.scale = Vector2.ONE
+	container.scale = piece.container_rest_scale
 	container.modulate.a = 1.0

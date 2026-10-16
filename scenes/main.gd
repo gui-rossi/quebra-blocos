@@ -38,13 +38,15 @@ func _ready() -> void:
 
 	layout()
 
+	# the slots get their final scale first: pieces are built to match it
+	bottom_tray.scale_randomized_blocks()
+
 	var saved = SaveGame.load_run() if SaveGame.pending_resume else {}
 	SaveGame.pending_resume = false
 	if saved.is_empty():
 		bottom_tray.set_randomized_blocks()
 	else:
 		_restore(saved)
-	bottom_tray.scale_randomized_blocks()
 	_update_playable()
 
 	_check_game_over.call_deferred()  # a restored run may already be stuck

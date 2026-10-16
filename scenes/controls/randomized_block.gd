@@ -21,6 +21,9 @@ var bomb: Node2D = null
 var drag_size_cells: float = 0.0  # > 0 resizes its body to this many grid cells wide, 0 keeps the tray size
 var drag_alpha: float = ShapeDefinitions.SHAPE_DRAG_ALPHA
 var body_size: float = 0.0  # width of its body, in the shape container's local units
+# Scale the shape container goes back to after a drag. The container undoes this slot's scale-up, so the
+# piece is drawn at its real on-screen size instead of drawn tiny and stretched (which made it blurry)
+var container_rest_scale: Vector2 = Vector2.ONE
 
 func _ready() -> void:
 	# the circle texture is only kept for sizing and touch detection, _draw paints the slot
@@ -28,11 +31,14 @@ func _ready() -> void:
 
 # Soft round slot under the piece, fainter once its piece has been used
 func _draw() -> void:
-	var radius = circle_sprite.texture.get_size().x / 2.0 * 0.9
-	var center = circle_sprite.position
+	# drawn in screen pixels (undoing the slot's scale-up) so the ring's edge stays sharp
+	var k = _screen_scale()
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE / k)
+	var radius = circle_sprite.texture.get_size().x / 2.0 * 0.9 * k
+	var center = circle_sprite.position * k
 	var strength = 1.0 if not shape_cells.is_empty() else 0.5
 	draw_circle(center, radius, Color(Palette.SLOT_FILL, Palette.SLOT_FILL.a * strength))
-	draw_arc(center, radius, 0.0, TAU, 64, Color(Palette.SLOT_RING, Palette.SLOT_RING.a * strength), 1.2, true)
+	draw_arc(center, radius, 0.0, TAU, 96, Color(Palette.SLOT_RING, Palette.SLOT_RING.a * strength), 3.0, true)
 
 # Dims the piece when it can't fit anywhere on the board
 func set_playable(playable: bool) -> void:
@@ -101,12 +107,18 @@ func build_piece(shape_scale_factor: float = 1.0) -> void:
 		child.queue_free()
 	bomb = null
 
+	# k = how much this slot is scaled up on screen, the container's contents are built k times bigger
+	var k = _screen_scale()
+	container_rest_scale = Vector2.ONE / k
+	shape_container.scale = container_rest_scale
+	queue_redraw()  # the slot ring follows the same scale
+
 	if is_bomb:
-		_build_bomb()
+		_build_bomb(k)
 		return
 
-	var size = GameConfig.cell_size * shape_scale_factor
-	var gap = GameConfig.cell_gap * shape_scale_factor
+	var size = GameConfig.cell_size * shape_scale_factor * k
+	var gap = GameConfig.cell_gap * shape_scale_factor * k
 
 	var min_x = shape_cells[0].x
 	var max_x = shape_cells[0].x
@@ -120,7 +132,7 @@ func build_piece(shape_scale_factor: float = 1.0) -> void:
 
 	var shape_width = (max_x - min_x + 1) * size
 	var shape_height = (max_y - min_y + 1) * size
-	var circle_center = circle_sprite.position
+	var circle_center = circle_sprite.position * k
 	body_size = shape_width
 
 	for cell in shape_cells:
@@ -133,13 +145,17 @@ func build_piece(shape_scale_factor: float = 1.0) -> void:
 		var local_y = (cell.y - min_y) * size - shape_height / 2.0
 		tile.position = circle_center + Vector2(local_x, local_y)
 
-func _build_bomb() -> void:
+func _build_bomb(k: float) -> void:
 	bomb = BOMB_SCENE.instantiate()
 	shape_container.add_child(bomb)
-	bomb.position = circle_sprite.position
-	bomb.fit_to(circle_sprite.texture.get_size().x * ShapeDefinitions.get_powerup("bomb").tray_size_ratio)
+	bomb.position = circle_sprite.position * k
+	bomb.fit_to(circle_sprite.texture.get_size().x * ShapeDefinitions.get_powerup("bomb").tray_size_ratio * k)
 	bomb.start_idle()
 	body_size = bomb.diameter
+
+# How much this slot is scaled up on screen (set by the bottom tray's scale_randomized_blocks)
+func _screen_scale() -> float:
+	return maxf(get_global_transform().get_scale().x, 0.001)
 
 # Hands the bomb over (e.g. to the grid, to explode) - this piece no longer owns it
 func take_bomb() -> Node2D:
