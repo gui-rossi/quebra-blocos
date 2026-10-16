@@ -142,8 +142,12 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   `get_tree().paused`, which also stops drag input and the combo timer.
 - **Buttons come from `UiStyle.button()`**, which gives the rounded look, the press squish, the click sound and the
   vibration.
-- **Icons are drawn in code** (gear, previous/next, backpack, padlock) so no icon files or font glyphs are needed. The
-  default font may not have symbols like ⚙ or ▶.
+- **Icons are drawn in code** (gear, previous/next, padlock) so no icon files or font glyphs are needed. The default
+  font may not have symbols like ⚙ or ▶.
+- **The backpack icon is a sprite**, `assets/ui/backpack.png`. It's original art rendered by
+  `tools/backpack_sprite.py` (pure Python, no dependencies), inspired by RPG leather backpacks. Tweak the script and
+  run `python3 tools/backpack_sprite.py assets/ui/backpack.png 256` to change it. `tools/` has a `.gdignore`, so
+  Godot skips it.
 - **Scores are shown with `NumberFormat.compact()`**: full below 10,000, then 75.3K, 253K, 1.25M. Values are cut
   down, never rounded up.
 

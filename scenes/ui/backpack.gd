@@ -6,19 +6,24 @@ extends Control
 
 const BackpackSlot = preload("res://scenes/ui/backpack_slot.gd")
 const FloatingText = preload("res://scenes/effects/floating_text.gd")
+const ICON: Texture2D = preload("res://assets/ui/backpack.png")  # made by tools/backpack_sprite.py
 
 const SLOT_COUNT := 3
 const ITEM_RATIO := 0.84  # slot size relative to the bar's height
 const GAP_RATIO := 0.18  # space between slots, relative to the slot size
 const DROP_MARGIN_RATIO := 0.25  # how far outside a slot a drop still counts, relative to the slot size
 
-var _icon: Control
+var _icon: TextureRect
 var _slots: Array = []
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	_icon = BackpackIcon.new()
+	_icon = TextureRect.new()
+	_icon.texture = ICON
+	_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_icon)
 	for i in range(SLOT_COUNT):
 		var slot = BackpackSlot.new()
@@ -132,31 +137,3 @@ func _layout() -> void:
 
 func _drop_rect(slot: Control) -> Rect2:
 	return slot.get_global_rect().grow(slot.size.x * DROP_MARGIN_RATIO)
-
-# The little backpack drawn next to the slots
-class BackpackIcon extends Control:
-	const LEATHER := Color(0.87, 0.52, 0.26)
-
-	func _ready() -> void:
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-		resized.connect(queue_redraw)
-
-	func _draw() -> void:
-		var s = minf(size.x, size.y)
-		var o = (size - Vector2(s, s)) / 2.0
-		# handle on top
-		draw_arc(o + Vector2(s * 0.5, s * 0.3), s * 0.13, PI, TAU, 20, LEATHER.darkened(0.3), s * 0.06, true)
-		# body, flap, pocket
-		_box(Rect2(o + Vector2(s * 0.2, s * 0.28), Vector2(s * 0.6, s * 0.62)), LEATHER, s * 0.14)
-		_box(Rect2(o + Vector2(s * 0.2, s * 0.28), Vector2(s * 0.6, s * 0.24)), LEATHER.darkened(0.18), s * 0.14)
-		_box(Rect2(o + Vector2(s * 0.32, s * 0.62), Vector2(s * 0.36, s * 0.2)), LEATHER.darkened(0.12), s * 0.06)
-		# buckle and a bit of shine
-		draw_rect(Rect2(o + Vector2(s * 0.46, s * 0.46), Vector2(s * 0.08, s * 0.1)), Color(1.0, 0.85, 0.4))
-		_box(Rect2(o + Vector2(s * 0.26, s * 0.33), Vector2(s * 0.2, s * 0.06)), Color(1, 1, 1, 0.22), s * 0.03)
-
-	func _box(rect: Rect2, color: Color, radius: float) -> void:
-		var style = StyleBoxFlat.new()
-		style.bg_color = color
-		style.set_corner_radius_all(int(radius))
-		style.anti_aliasing = true
-		draw_style_box(style, rect)
