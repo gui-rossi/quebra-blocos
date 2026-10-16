@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="quebra-blocos"
-run/main_scene="uid://cijkrdckusgyc"
+run/main_scene="res://scenes/ui/main_menu.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
 
@@ -19,6 +19,10 @@ config/icon="res://icon.svg"
 
 GameConfig="*uid://cjjc41jak1wwg"
 ShapeDefinitions="*uid://dl1lp4li2ynwk"
+Settings="*res://configs/settings.gd"
+Sfx="*res://managers/sfx.gd"
+SaveGame="*res://configs/save_game.gd"
+MusicPlayer="*res://managers/music_player.gd"
 
 [display]
 
@@ -35,6 +39,11 @@ version_control/autoload_on_startup=true
 [input_devices]
 
 pointing/emulate_touch_from_mouse=true
+
+[internationalization]
+
+locale/translations=PackedStringArray("res://localization/strings.en.translation", "res://localization/strings.pt_BR.translation", "res://localization/strings.es.translation")
+locale/fallback="en"
 
 [physics]
 

@@ -1,0 +1,34 @@
+keys,en,pt_BR,es
+MENU_CONTINUE,Continue,Continuar,Continuar
+MENU_NEW_GAME,New game,Novo jogo,Nueva partida
+MENU_OPTIONS,Options,Opções,Opciones
+MENU_BEST,Best: %s,Recorde: %s,Récord: %s
+OPTIONS_TITLE,Options,Opções,Opciones
+OPTIONS_SOUND_EFFECTS,Sound effects,Efeitos sonoros,Efectos de sonido
+OPTIONS_MUSIC,Music,Música,Música
+OPTIONS_VIBRATION,Vibration,Vibração,Vibración
+OPTIONS_EFFECTS,Effects,Efeitos,Efectos
+OPTIONS_LANGUAGE,Language: %s,Idioma: %s,Idioma: %s
+OPTIONS_LANGUAGE_AUTO,Automatic,Automático,Automático
+OPTIONS_BACK,Back,Voltar,Atrás
+MUSIC_NOW_PLAYING,Now playing,Tocando agora,Sonando ahora
+MUSIC_NONE,No music,Sem música,Sin música
+PAUSE_TITLE,Paused,Pausado,En pausa
+PAUSE_RESUME,Resume,Continuar,Reanudar
+PAUSE_SOUND_ON,Sound: On,Som: Ligado,Sonido: Activado
+PAUSE_SOUND_OFF,Sound: Off,Som: Desligado,Sonido: Desactivado
+PAUSE_OPTIONS,Options,Opções,Opciones
+PAUSE_MAIN_MENU,Main menu,Menu principal,Menú principal
+HUD_BEST,BEST %s,RECORDE %s,RÉCORD %s
+GAME_OVER_TITLE,No more moves!,Sem mais jogadas!,¡Sin movimientos!
+GAME_OVER_SCORE,Score,Pontuação,Puntuación
+GAME_OVER_NEW_BEST,New best!,Novo recorde!,¡Nuevo récord!
+GAME_OVER_BEST,Best: %s,Recorde: %s,Récord: %s
+GAME_OVER_PLAY_AGAIN,Play again,Jogar de novo,Jugar de nuevo
+GAME_OVER_MAIN_MENU,Main menu,Menu principal,Menú principal
+BANNER_LINES_2,Great!,Ótimo!,¡Genial!
+BANNER_LINES_3,Amazing!,Incrível!,¡Asombroso!
+BANNER_LINES_4,Unbelievable!,Inacreditável!,¡Increíble!
+BACKPACK_SLOT_UNLOCKED,New backpack slot!,Novo espaço na mochila!,¡Nuevo hueco en la mochila!
+POWERUP_BOOSTER,Multiplier +%d!,Multiplicador +%d!,¡Multiplicador +%d!
+POWERUP_SLOW_TIME,Time slowed!,Tempo mais lento!,¡Tiempo más lento!

@@ -1,0 +1,252 @@
+# quebra-blocos
+
+A mobile block puzzle game in **Godot 4.7** (GDScript, "Mobile" renderer, 720×1280 portrait base viewport,
+`canvas_items` stretch with `expand` aspect). It's inspired by Block Blast, not a copy: drag pieces from a 3-slot
+tray onto a 10×12 grid, clear full rows and columns, chain clears for a score multiplier with a combo timer, and use
+power-ups (bomb, laser, prism, booster, hourglass).
+
+## Working on this repo
+
+- **Godot isn't available in the Claude environment.** Nothing can be run or tested here. Every change has to be
+  checked by the owner in the Godot editor, so keep that in mind and say so when reporting work.
+- **Build UI in code, not in `.tscn` files.** Most widgets are created in `_ready()`, so scene files stay small and
+  valid when edited by hand. When a `.tscn` must change, keep its existing `uid` and `unique_id` values. New scenes
+  can leave out the `uid` (Godot assigns one).
+- **Git identity:** commits use the repo-local identity `guirossi <guizo.rossi@gmail.com>` (set in `.git/config`).
+- **Pushing:** WSL git has no GitHub credentials, so push with Windows git: `git.exe push origin <branch> <tag>`.
+- **Commit and push as soon as a feature or fix is done, without waiting to be asked.** The owner tests from the
+  remote branch after the push. **Update this file in every push** (checkpoint table, architecture notes, plans).
+- **Checkpoints:** each milestone is an annotated git **tag** named `checkpoint-NN-<name>` on the work branch
+  (currently `enhancements`), pushed to GitHub. Follow-up fixes for a milestone go in a new commit, then the tag is
+  moved with `git tag -f -a` and force-pushed with `git.exe push --force origin <tag>`. `git tag -l` shows the next
+  number.
+- **`README.md`** explains how to run the game and build a Windows `.exe` or an Android `.apk`/`.aab`. Builds
+  go in `build/`, which is gitignored.
+- **`.import` files:** Godot creates them when the project opens (one per asset, including every music track). Commit
+  them when they show up.
+
+## Checkpoints so far
+
+| Tag | What it added |
+|---|---|
+| `checkpoint-01-enhancements` | Main menu, pause and options menus, Settings and SaveGame, generated sound effects, top tray HUD (animated score, best score, multiplier badge with a combo ring), placement and line-clear effects, score popups, game over, save and resume |
+| `checkpoint-02-visuals` | Gradient background, rounded board panel, beveled glossy blocks in palette colors, soft tray slots, unplayable pieces dimmed, grid-size dragging with a ghost preview and lines-to-clear highlight, pieces held by their center, tray pieces drawn at screen resolution |
+| `checkpoint-03-hud-music` | Gear and multiplier badge aligned with the board edges, badge font shrinking with digits, settings saved on every change, public-domain classical music (MusicPlayer) |
+| `checkpoint-04-music-player` | More public-domain tracks (14 total), a music player in Options (now playing, progress and time, previous and next) |
+| `checkpoint-05-backpack` | Backpack bar with 3 power-up slots (slots 2 and 3 unlock for good at 250K and 750K), compact score numbers (75.3K, 1.25M), music paused when turned off, unused sound controls hidden |
+| `checkpoint-06-languages` | Language support: English, Brazilian Portuguese and Spanish, automatic from the phone's language with a Language option in Options |
+| `checkpoint-07-powerups` | Generic power-up system, new laser / prism / booster / rare hourglass (half-speed combo timer for 30s), smaller bomb (radius 2), 5 backpack slots unlocking at 20K / 50K / 100K / 500K (only from scores reached in a game), at most 1 power-up per tray batch |
+
+## Project layout
+
+```
+configs/      game data and global state (autoloads + plain helper scripts)
+managers/     gameplay systems (grid, drag and drop, combo timer, sound effects, music)
+scenes/
+  main.tscn/gd     the game screen, wires everything together
+  blocks/          a single block (tile) and how it's drawn
+  controls/        top tray (HUD), bottom tray (3 piece slots), a tray piece
+  powerups/        the power-ups' drawings and effects (bomb scene, drawn laser / prism / booster / hourglass)
+  effects/         particle bursts and floating text
+  ui/              menus, HUD widgets, backpack, shared UI styling
+assets/music/  public-domain music tracks + CREDITS.md (source and license of each)
+assets/ui/     UI sprites (backpack icon)
+localization/  strings.csv with every visible text in each language
+tools/         asset generator scripts (ignored by Godot)
+```
+
+### Autoloads (order matters, see `project.godot`)
+
+| Name | Script | Role |
+|---|---|---|
+| `GameConfig` | `configs/game_config.gd` | Tuning values (points, bomb radius and fuse, booster amount, slow-time speed and length, backpack unlock scores) and run state (`current_score_multiplier`, `cell_size`) |
+| `ShapeDefinitions` | `configs/shape_definitions.gd` | Every piece shape (cell offsets) and every power-up's data (`POWERUPS`) |
+| `Settings` | `configs/settings.gd` | Player options and stats in `user://settings.cfg`, creates the `SFX` and `Music` audio buses, `vibrate()` |
+| `Sfx` | `managers/sfx.gd` | Sound effects synthesized in code at startup (no files), a pool of players on the SFX bus |
+| `SaveGame` | `configs/save_game.gd` | The run in progress as JSON in `user://run.json` (versioned) |
+| `MusicPlayer` | `managers/music_player.gd` | Shuffled playlist with crossfades on the Music bus, previous and next |
+
+`Settings` must load before `Sfx` and `MusicPlayer`: it creates the audio buses they play on. A player set to a bus
+that doesn't exist yet silently falls back to Master, so mute and volume wouldn't apply.
+
+Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `configs/palette.gd` (every color),
+`configs/number_format.gd`, `scenes/ui/ui_style.gd`.
+
+## Architecture decisions
+
+### Data-driven pieces and power-ups
+- Shapes and power-ups live in `configs/shape_definitions.gd`. A power-up entry has `cells`, `spawn_chance`,
+  `tray_size_ratio`, `drag_size_cells` and `drag_alpha`. Adding a power-up starts with an entry there.
+- Tray pieces (`scenes/controls/randomized_block.gd`) carry the per-piece values the drag controller reads:
+  `shape_cells`, `shape_name` / `powerup_name`, `piece_color`, `drag_size_cells` (resize to N grid cells while
+  dragged), `drag_alpha`, `body_size`, `container_rest_scale` and `container_rest_position`.
+- **The drag interface is duck-typed.** Anything with those fields and a `ShapeContainer` Node2D child can be
+  dragged: tray pieces and backpack slots (`scenes/ui/backpack_slot.gd`) both are. `drag_controller.gd` doesn't care
+  where a piece comes from, except that tray power-ups can also be dropped into the backpack.
+- **Power-ups are generic.** A piece holds a power-up when its `powerup_name` isn't empty, and the drag controller
+  only calls `grid_manager.show_powerup_highlight`, `can_place_powerup` and `activate_powerup(key, visual, col, row)`.
+  What each one does is a `match` on the key in `grid_manager.gd` ("Power-ups" section):
+  - **bomb:** a round blast, `GameConfig.bomb_radius` (2, a 5×5 area without the corners).
+  - **laser:** clears the target's whole row and column.
+  - **prism:** clears every block with the target's color, and can only be dropped on a block.
+  - **booster:** goes anywhere, raises the multiplier by `GameConfig.booster_multiplier` and refills the combo timer.
+  - **hourglass (rare, 1.5%):** goes anywhere. For `GameConfig.slow_time_duration` (30) real seconds the combo timer
+    runs at `GameConfig.slow_time_factor` (0.5, half speed), and the badge's ring turns icy blue. The grid emits
+    `slow_time_used` and `main.gd` calls `timer_manager.slow_down()`. Using another one restarts the 30s. The time
+    left is saved with the run.
+- **The visuals:** each power-up's `visual` in `POWERUPS` is a scene or script with `fit_to(diameter)`,
+  `start_idle()` and `activate(target)` (fly to the target, play a flair, free itself). The grid applies the effect
+  after `activate` ends. The bomb is a scene, and the others extend `scenes/powerups/powerup_visual.gd` and draw
+  themselves. Pieces get theirs from `ShapeDefinitions.make_powerup_visual()`.
+- **Adding a power-up:** an entry in `POWERUPS`, a visual, and a case in `get_powerup_area`, `can_place_powerup` and
+  `activate_powerup`.
+- **Spawning:** one roll per tray slot against the sum of all `spawn_chance` values, then a pick weighted by chance
+  (`roll_powerup_name`). **At most 1 power-up per batch of 3:** `bottom_tray._roll_batch()` rolls the slots in a
+  random order, and once one gets a power-up the others can only get shapes.
+
+### Drawing
+- **Blocks are drawn, not textured.** `scenes/blocks/block_visual.gd` draws the beveled, glossy tile with
+  StyleBoxFlat layers. Use `block_space.block_color` for the color and keep `modulate` free for effects (flashes,
+  fades, ghost transparency). `empty = true` draws a recessed empty grid cell.
+- **Draw at screen resolution.** Tray slots are scaled up about 3.5×. Drawing small and scaling up gives 1px corners
+  and stretched edge smoothing, so a tray piece's `ShapeContainer` uses scale `1/k` (k = the slot's screen scale) and
+  is built k times bigger, and the slot ring is drawn with `draw_set_transform` back to screen pixels. That's why
+  `bottom_tray.scale_randomized_blocks()` must run **before** pieces are built (see `main.gd`).
+- **All colors are in `configs/palette.gd`.** Piece colors are picked at random from `PIECE_COLORS`.
+- **The board panel** is drawn in `grid_manager._draw()`, under all the cells. `get_board_rect()` gives its rectangle,
+  and the top tray uses it to line the gear and badge up with the board's edges.
+
+### Screen layout (`scenes/main.gd`)
+- Top to bottom: top tray (10% of the height), board, backpack bar (7.5%), bottom tray (20%). The grid gets what's
+  left (`grid_manager.set_reserved_space`), with square cells sized by the tighter of width and height.
+- The HUD and the bottom tray have no solid bars: everything floats on the gradient background
+  (`scenes/ui/background.gd`).
+
+### Gameplay flow
+- **Game over:** after every drop (`drag_controller.piece_dropped`), `main.gd` checks whether any tray piece fits
+  anywhere (`grid_manager.can_fit_anywhere`). Power-ups always fit, and anything in the backpack keeps the game going.
+  For a power-up it first waits for `grid_manager.powerup_finished`, because cells only free up once its animation is
+  done.
+- **The combo multiplier** goes up with each cleared line (`grid_manager.cleared_row_or_column`). It resets in
+  `main.gd` on `timer_manager.combo_expired`; the HUD only displays it. The combo timer is counted by hand in
+  `timer_manager._process`, not with a `Timer` node, so it can run slower. It pauses with the tree.
+- **Line clears** free their cells immediately, then animate the tiles in a wave from where the piece landed.
+- **Pieces that don't fit** are dimmed after every move (`main._update_playable`).
+
+### Saving
+- **Settings** (`user://settings.cfg`) are saved as soon as an option changes. They also hold `best_score` and
+  `backpack_slots`, the number of unlocked backpack slots (permanent unlocks).
+- **The run** (`user://run.json`) holds the board, the tray slots (shape or power-up by name, plus color), the backpack
+  contents, score, multiplier and combo time left. It's saved after every drop, on pause, when going to the menu, and
+  when the app goes to the background. It's cleared on game over or New game. Bump `SaveGame.VERSION` when the format
+  changes, and older saves are then ignored.
+
+### Backpack
+- There are 5 slots (`Backpack.SLOT_COUNT`), and slot 1 is always open. The rest unlock at
+  `GameConfig.backpack_unlock_scores = [0, 20000, 50000, 100000, 500000]`. Reaching a score during a game unlocks
+  that slot for good (`Settings.backpack_slots`, saved as `backpack_slots_v2`). Past best scores don't count, so
+  new players always start with 1 open slot.
+- While a tray power-up is dragged, free slots glow. Dropping on one (with some margin around it) stores the power-up
+  and uses up the tray piece, like placing it. A stored power-up is dragged onto the grid the same way as from the
+  tray, and returns to its slot if dropped elsewhere.
+
+### Audio
+- **Sound effects** are generated in code (`managers/sfx.gd`). The line-clear chime gets higher with the multiplier.
+- **Music** (`managers/music_player.gd`):
+  - It plays a shuffled playlist with a 2.5s crossfade (0.4s when skipping). "Previous" restarts the track if it has
+    played for more than 3s.
+  - When music is off it **pauses** the players and stops processing, instead of muting them, so it uses no CPU.
+  - It keeps playing while the game is paused.
+- **Music licensing rule:** a composition being old isn't enough, because each recording has its own copyright. Only
+  use **CC0 or public domain recordings**, for example Musopen releases or US military bands, which are US
+  government works. Check each file's license, list it in `assets/music/CREDITS.md`, and add it to
+  `MusicPlayer.TRACKS`.
+- **Licensing caveats in the playlist:**
+  - Clair de lune has an unclear CC note.
+  - Rondo alla Turca is rendered from a MIDI, so it sounds synthetic.
+  - Tico-Tico no Fubá may still be protected in the US. It's included at the owner's decision.
+- **Size:** the music adds about 69 MB. If app size matters, compress or drop Clair de lune and William Tell first.
+
+### Localization
+- **Strings live in `localization/strings.csv`** (columns `keys,en,pt_BR,es`). Godot imports it into
+  `strings.<locale>.translation` files, which are registered in `project.godot` under `[internationalization]`.
+  The fallback is `en`.
+- **Never put visible text in code; use a key.** A Control whose `text` is a key translates itself and updates
+  when the language changes. Text built from values uses `tr("KEY") % value` and is rebuilt in
+  `_notification(NOTIFICATION_TRANSLATION_CHANGED)` (see `top_tray.gd`, `main_menu.gd`, `options_panel.gd`,
+  `game_over_panel.gd`).
+- **Things that aren't translated:** turn auto-translation off (`auto_translate_mode = DISABLED`) on labels showing
+  text that must stay as it is (music titles) or that's already translated. The game's name "Quebra Blocos" isn't
+  translated either.
+- **Choosing the language:** `Settings.language` is `""` (automatic, which follows `OS.get_locale()`) or a code from
+  `Settings.LANGUAGES`. `Settings.set_language()` applies it right away and saves it. Godot matches the closest
+  translation, so `pt_PT` gets `pt_BR`, any `es_*` gets `es`, and the rest get English. In Options, the Language
+  button cycles Automatic → English → Português (Brasil) → Español.
+- **Adding a language:** add a column to the CSV, register its `.translation` file in `project.godot`, and add it
+  to `Settings.LANGUAGES` with its own name. Scripts beyond Latin, Cyrillic and Greek need a fallback font (Noto) in
+  a theme. Check the widths: Portuguese and Spanish run about 30% longer than English.
+
+### UI conventions
+- **Menus are CanvasLayers on layer 20** with `PROCESS_MODE_ALWAYS`. Opening the pause menu sets
+  `get_tree().paused`, which also stops drag input and the combo timer.
+- **Buttons come from `UiStyle.button()`**, which gives the rounded look, the press squish, the click sound and the
+  vibration.
+- **Icons are drawn in code** (gear, previous/next, padlock) so no icon files or font glyphs are needed. The default
+  font may not have symbols like ⚙ or ▶.
+- **The backpack icon is a sprite**, `assets/ui/backpack.png`. It's original art: a glossy 3D rucksack with a dark
+  outline (top straps, side pockets, rounded flap, front pocket) and a faceted blue diamond on its centre strap. It's
+  variant `b5` of `tools/backpack_icons.py` (pure Python, no dependencies). That script also keeps the other variants
+  that were tried (`b` to `b4`). Run `python3 tools/backpack_icons.py assets/ui b5` and rename
+  `backpack_option_b5.png` to `backpack.png` to rebuild it. `tools/` has a `.gdignore`, so Godot
+  skips it.
+- **Scores are shown with `NumberFormat.compact()`**: full below 10,000, then 75.3K, 253K, 1.25M. Values are cut
+  down, never rounded up.
+
+## Plans for the future
+
+### Piece randomizer
+- **Difficulty curve:** spawn smaller pieces first, then bring in bigger ones as the game goes on. Possible measures
+  of progress: score, pieces placed, or lines cleared. Weight each shape in `ShapeDefinitions.SHAPES` by its size
+  (cell count) and shift the weights as progress grows, instead of the current uniform `get_random_shape_name()`.
+- **Every batch of 3 tray pieces must be 3 different pieces** (no repeated shape in the same batch). Roll the batch
+  as a whole in `bottom_tray`, not one slot at a time.
+- The testing shortcut in `randomize_shape()` (always `square_3x3`) goes away as part of this.
+
+### Skins (main menu)
+- **A new "Skins" section in the main menu** for unlocking and picking cosmetic looks for:
+  - **the board:** panel, border, empty cells and background;
+  - **the top and bottom trays:** HUD discs, tray slots and the backpack bar;
+  - **the pieces:** block colors and block style, e.g. glossy, flat, pixel or glass.
+- **Locked skins** show a padlock and what unlocks them, the same pattern as the backpack slots. Unlocks are
+  permanent and saved in `Settings`.
+- **Still to decide with the owner:** how skins are unlocked (score milestones, lines cleared, games played,
+  achievements, or a currency earned by playing) and how many skins each category starts with.
+- **How it could be built:**
+  - **Skin data:** today every color is a constant in `configs/palette.gd`. Each skin would become a set of those
+    values (a Resource or a dictionary per skin), read through a `Skins` autoload instead of the constants.
+  - **Who reads it:** `block_visual.gd`, `grid_manager._draw` (the board), `background.gd`, the tray slots
+    (`randomized_block._draw`), the HUD discs and the backpack slots would read the current skin. They'd redraw
+    when it changes (a `Skins.changed` signal).
+  - **Block styles** beyond colors (pixel, glass) would be different draw paths in `block_visual.gd`, selected by
+    the piece skin.
+  - **Saving:** the selected skin per category and the unlocked skins go in `Settings` (`user://settings.cfg`), not
+    in the run save.
+  - **Menu screen:** a skins screen with 3 tabs (board, trays, pieces). Each skin is a small live preview, a few
+    blocks on a mini board, so it reuses the real drawing code instead of image files.
+
+### Crown next to the best score
+- **A small gold crown icon** to the left of the best score in the top tray (`top_tray.gd`, the "BEST 12K" label
+  under the score), so the record reads at a glance in any language.
+- **Draw it in code**, like the other HUD icons (a Control with `_draw`): a 3-point crown with a dark outline, gold
+  fill with top-left lighting, and small gems on the points. It's sized from the label's font height so it scales
+  with it.
+- **Layout:** put the crown and the label in an `HBoxContainer` that replaces the plain best-score label in the score
+  `VBoxContainer`, so the pair stays centred under the score. The translated "BEST" / "RECORDE" / "RÉCORD" text stays
+  next to it.
+- **Optional:** the same crown on the main menu's and game over's best score, and a short shine on the crown when a
+  new best is reached during a game.
+
+## Known leftovers
+- `randomize_shape()` in `randomized_block.gd` has a testing shortcut that always returns `square_3x3`. Remove it to
+  get normal piece variety.
+- The `.import` files for the music aren't committed yet.

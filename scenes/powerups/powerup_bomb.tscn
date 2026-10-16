@@ -1,14 +1,23 @@
 [gd_scene format=3 uid="uid://sx81muecys5v"]
 
-[ext_resource type="Texture2D" uid="uid://bxwf2ovgysmg5" path="res://scenes/powerups/bomb_powerup.png" id="1_m4vxr"]
+[ext_resource type="Script" path="res://scenes/powerups/powerup_bomb.gd" id="1_bomb"]
+[ext_resource type="Texture2D" path="res://scenes/powerups/bomb_body.png" id="2_body"]
+[ext_resource type="Script" path="res://scenes/powerups/bomb_spark.gd" id="3_spark"]
 
 [node name="PowerupBomb" type="Node2D" unique_id=1399244109]
+script = ExtResource("1_bomb")
 
-[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1613775317]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=518521730]
+texture = ExtResource("2_body")
+offset = Vector2(0, -22)
 
-[node name="Sprite2D" type="Sprite2D" parent="CanvasLayer" unique_id=518521730]
+[node name="Fuse" type="Line2D" parent="Sprite2D"]
+width = 5.0
+default_color = Color(0.47058824, 0.3137255, 0.15686275, 1)
+joint_mode = 2
+begin_cap_mode = 2
+end_cap_mode = 2
+antialiased = true
 
-[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Sprite2D" unique_id=1167750581]
-offset_right = 40.0
-offset_bottom = 40.0
-texture = ExtResource("1_m4vxr")
+[node name="Spark" type="Node2D" parent="Sprite2D"]
+script = ExtResource("3_spark")

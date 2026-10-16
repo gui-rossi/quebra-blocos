@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://bn750qxpc3nxi" path="res://scenes/controls/bottom_tray.tscn" id="3_sugp2"]
 [ext_resource type="Script" uid="uid://buw0kuw7odxsf" path="res://managers/drag_controller.gd" id="5_tbgi4"]
 [ext_resource type="PackedScene" uid="uid://buuj0ppy2c07g" path="res://managers/timer_manager.tscn" id="6_tefeu"]
+[ext_resource type="Script" path="res://scenes/ui/background.gd" id="7_bg"]
 
 [node name="Main" type="Node" unique_id=2068484450]
 script = ExtResource("1_0wfyh")
@@ -13,13 +14,15 @@ script = ExtResource("1_0wfyh")
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=2114263156]
 layer = -1
 
-[node name="ColorRect" type="ColorRect" parent="CanvasLayer" unique_id=1702589235]
+[node name="Background" type="Control" parent="CanvasLayer" unique_id=1702589235]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(9.62615e-08, 0.19331533, 0.50892246, 0.48235294)
+mouse_filter = 2
+script = ExtResource("7_bg")
 
 [node name="TopTray" parent="CanvasLayer" unique_id=1736511696 instance=ExtResource("3_jyhfs")]
 

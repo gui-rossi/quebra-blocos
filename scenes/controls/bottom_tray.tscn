@@ -22,7 +22,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.34043974, 0.26006702, 0.1842097, 1)
+color = Color(0, 0, 0, 0)
+mouse_filter = 2
 
 [node name="Randomized3" parent="CanvasLayer/Control" unique_id=527154083 instance=ExtResource("1_np33j")]
 
