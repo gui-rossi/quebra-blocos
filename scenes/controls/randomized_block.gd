@@ -2,11 +2,15 @@ extends Node2D
 
 const BLOCK_SPACE_SCENE: PackedScene = preload("res://scenes/blocks/block_space.tscn")
 const BOMB_SCENE: PackedScene = preload("res://scenes/powerups/powerup_bomb.tscn")
+const Palette = preload("res://configs/palette.gd")
 
 @onready var circle_sprite: Sprite2D = $Sprite2D
 @onready var shape_container: Node2D = $ShapeContainer
 
-var shape_cells: Array = []
+var shape_cells: Array = []:
+	set(value):
+		shape_cells = value
+		queue_redraw()  # the slot looks different once its piece is used
 var piece_color: Color = Color.DARK_GREEN
 var shape_name: String = ""  # key in ShapeDefinitions.SHAPES, "" for a power-up
 var powerup_name: String = ""  # key in ShapeDefinitions.POWERUPS, "" for a regular shape
@@ -19,7 +23,21 @@ var drag_alpha: float = ShapeDefinitions.SHAPE_DRAG_ALPHA
 var body_size: float = 0.0  # width of its body, in the shape container's local units
 
 func _ready() -> void:
-	pass  # don't build here - GameConfig.cell_size isn't set yet at this point
+	# the circle texture is only kept for sizing and touch detection, _draw paints the slot
+	circle_sprite.visible = false
+
+# Soft round slot under the piece, fainter once its piece has been used
+func _draw() -> void:
+	var radius = circle_sprite.texture.get_size().x / 2.0 * 0.9
+	var center = circle_sprite.position
+	var strength = 1.0 if not shape_cells.is_empty() else 0.5
+	draw_circle(center, radius, Color(Palette.SLOT_FILL, Palette.SLOT_FILL.a * strength))
+	draw_arc(center, radius, 0.0, TAU, 64, Color(Palette.SLOT_RING, Palette.SLOT_RING.a * strength), 1.2, true)
+
+# Dims the piece when it can't fit anywhere on the board
+func set_playable(playable: bool) -> void:
+	var tint = Color.WHITE if playable else Palette.PIECE_UNPLAYABLE
+	shape_container.modulate = Color(tint, shape_container.modulate.a)
 
 func randomize_shape() -> void:
 	var rolled_powerup = ShapeDefinitions.roll_powerup_name()
@@ -31,8 +49,6 @@ func randomize_shape() -> void:
 	return
 
 	_apply_shape(ShapeDefinitions.get_random_shape_name())
-	#piece_color = Color(randf(), randf(), randf())
-	piece_color = Color.from_rgba8(17, 138, 178)
 
 # The slot as plain data, for saving
 func to_save() -> Dictionary:
@@ -72,7 +88,12 @@ func _apply_shape(key: String) -> void:
 	powerup_name = ""
 	is_bomb = false
 	shape_cells = ShapeDefinitions.get_shape(key)
-	drag_size_cells = 0.0
+	piece_color = Palette.PIECE_COLORS.pick_random()
+	# shown at grid size while dragged, so it matches the cells it will land on
+	var widest := 0
+	for cell in shape_cells:
+		widest = maxi(widest, cell.x + 1)
+	drag_size_cells = widest
 	drag_alpha = ShapeDefinitions.SHAPE_DRAG_ALPHA
 
 func build_piece(shape_scale_factor: float = 1.0) -> void:
@@ -106,7 +127,7 @@ func build_piece(shape_scale_factor: float = 1.0) -> void:
 		var tile = BLOCK_SPACE_SCENE.instantiate()
 		shape_container.add_child(tile)
 		tile.block_size = Vector2(size - gap, size - gap)
-		tile.modulate = piece_color
+		tile.block_color = piece_color
 
 		var local_x = (cell.x - min_x) * size - shape_width / 2.0
 		var local_y = (cell.y - min_y) * size - shape_height / 2.0

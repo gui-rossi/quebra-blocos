@@ -42,7 +42,7 @@ const POWERUPS := {
 }
 
 # Opacity of a regular shape while dragged
-const SHAPE_DRAG_ALPHA: float = 0.6
+const SHAPE_DRAG_ALPHA: float = 0.95
 
 func get_random_shape_name() -> String:
 	var keys = SHAPES.keys()

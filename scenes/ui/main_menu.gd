@@ -4,8 +4,8 @@ extends Control
 
 const UiStyle = preload("res://scenes/ui/ui_style.gd")
 const OptionsPanel = preload("res://scenes/ui/options_panel.gd")
+const Background = preload("res://scenes/ui/background.gd")
 const GAME_SCENE := "res://scenes/main.tscn"
-const BACKGROUND := Color(0.05, 0.12, 0.28)
 
 var _menu: VBoxContainer
 var _options: PanelContainer
@@ -15,10 +15,7 @@ func _ready() -> void:
 	get_tree().paused = false  # coming back from the pause menu
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
-	var background = ColorRect.new()
-	background.color = BACKGROUND
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(background)
+	add_child(Background.new())
 
 	var center = CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

@@ -45,6 +45,7 @@ func _ready() -> void:
 	else:
 		_restore(saved)
 	bottom_tray.scale_randomized_blocks()
+	_update_playable()
 
 	_check_game_over.call_deferred()  # a restored run may already be stuck
 
@@ -72,6 +73,7 @@ func _on_piece_dropped(was_bomb: bool) -> void:
 	if was_bomb:
 		await grid_manager.bomb_detonated  # its cells only free up once the fuse burns down
 	_save_run()
+	_update_playable()
 	_check_game_over()
 
 func _on_combo_expired() -> void:
@@ -96,14 +98,21 @@ func _play_again() -> void:
 
 # ---------------- Game over ----------------
 
-# Game over when none of the pieces left in the tray fit anywhere (power-ups always fit)
+# Game over when none of the pieces left in the tray fit anywhere
 func _is_game_over() -> bool:
 	for piece in bottom_tray.get_pieces():
-		if piece.shape_cells.is_empty():
-			continue
-		if piece.powerup_name != "" or grid_manager.can_fit_anywhere(piece.shape_cells):
+		if not piece.shape_cells.is_empty() and _can_play(piece):
 			return false
 	return true
+
+# Power-ups always fit, shapes need a free spot on the board
+func _can_play(piece: Node2D) -> bool:
+	return piece.powerup_name != "" or grid_manager.can_fit_anywhere(piece.shape_cells)
+
+# Dims the tray pieces that don't fit anywhere right now
+func _update_playable() -> void:
+	for piece in bottom_tray.get_pieces():
+		piece.set_playable(piece.shape_cells.is_empty() or _can_play(piece))
 
 func _check_game_over() -> void:
 	if _is_over or not _is_game_over():
