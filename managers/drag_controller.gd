@@ -14,10 +14,6 @@ var dragging_container: Node2D = null
 var dragging_piece: Node2D = null  # the RandomizedBlock this container belongs to
 var drag_shape_half: Vector2i = Vector2i.ZERO  # half-extents of the shape's bounding box
 var _drag_scale_tween: Tween
-var _drag_offset: Vector2 = Vector2.ZERO  # the piece floats above the finger so it isn't hidden under it
-
-# How far above the finger a dragged piece floats, in grid cells, on top of half its height
-const DRAG_LIFT_CELLS: float = 0.8
 
 func _ready() -> void:
 	grid_manager = get_node(grid_manager_path)
@@ -33,7 +29,7 @@ func _input(event: InputEvent) -> void:
 
 	elif event is InputEventScreenDrag:
 		if dragging_container:
-			dragging_container.global_position = event.position + _drag_offset
+			dragging_container.global_position = event.position
 			var origin_cell = _get_origin_cell()
 			if dragging_piece.is_bomb:
 				grid_manager.show_bomb_highlight(origin_cell.x, origin_cell.y)
@@ -78,8 +74,8 @@ func _start_drag(piece: Node2D, touch_position: Vector2) -> void:
 	dragging_container.reparent(drag_layer, true)
 	dragging_container.modulate.a = piece.drag_alpha
 
-	_drag_offset = Vector2(0, -GameConfig.cell_size * (bounds.y / 2.0 + DRAG_LIFT_CELLS))
-	dragging_container.global_position = touch_position + _drag_offset
+	# the piece is held by its center, right under the finger
+	dragging_container.global_position = touch_position
 	Settings.vibrate(5)
 
 	if piece.drag_size_cells > 0.0:
