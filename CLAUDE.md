@@ -144,10 +144,12 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   vibration.
 - **Icons are drawn in code** (gear, previous/next, padlock) so no icon files or font glyphs are needed. The default
   font may not have symbols like ⚙ or ▶.
-- **The backpack icon is a sprite**, `assets/ui/backpack.png`. It's original art rendered by
-  `tools/backpack_sprite.py` (pure Python, no dependencies), inspired by RPG leather backpacks. Tweak the script and
-  run `python3 tools/backpack_sprite.py assets/ui/backpack.png 256` to change it. `tools/` has a `.gdignore`, so
-  Godot skips it.
+- **The backpack icon is a sprite**, `assets/ui/backpack.png`. It's original art: a glossy 3D rucksack with a dark
+  outline (top straps, side pockets, rounded flap, front pocket) and a faceted blue diamond on its centre strap. It's
+  variant `b5` of `tools/backpack_icons.py` (pure Python, no dependencies). That script also keeps the other variants
+  that were tried (`b` to `b4`). Run `python3 tools/backpack_icons.py assets/ui b5` and rename
+  `backpack_option_b5.png` to `backpack.png` to rebuild it. `tools/` has a `.gdignore`, so Godot
+  skips it.
 - **Scores are shown with `NumberFormat.compact()`**: full below 10,000, then 75.3K, 253K, 1.25M. Values are cut
   down, never rounded up.
 

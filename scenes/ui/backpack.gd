@@ -6,7 +6,7 @@ extends Control
 
 const BackpackSlot = preload("res://scenes/ui/backpack_slot.gd")
 const FloatingText = preload("res://scenes/effects/floating_text.gd")
-const ICON: Texture2D = preload("res://assets/ui/backpack.png")  # made by tools/backpack_sprite.py
+const ICON: Texture2D = preload("res://assets/ui/backpack.png")  # made by tools/backpack_icons.py
 
 const SLOT_COUNT := 3
 const ITEM_RATIO := 0.84  # slot size relative to the bar's height
