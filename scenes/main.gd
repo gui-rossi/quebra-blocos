@@ -43,6 +43,8 @@ func _ready() -> void:
 	top_tray.set_best(Settings.best_score)
 	drag_controller.piece_dropped.connect(_on_piece_dropped)
 	timer_manager.combo_expired.connect(_on_combo_expired)
+	timer_manager.slow_time_changed.connect(top_tray.set_slow_time)
+	grid_manager.slow_time_used.connect(_on_slow_time_used)
 
 	layout()
 
@@ -92,6 +94,10 @@ func _on_piece_dropped(was_powerup: bool) -> void:
 	_save_run()
 	_update_playable()
 	_check_game_over()
+
+# Hourglass power-up: the combo timer runs slower for a while
+func _on_slow_time_used() -> void:
+	timer_manager.slow_down(GameConfig.slow_time_duration, GameConfig.slow_time_factor)
 
 func _on_combo_expired() -> void:
 	GameConfig.current_score_multiplier = 1
@@ -164,6 +170,7 @@ func _save_run() -> void:
 		"score": grid_manager.score,
 		"multiplier": GameConfig.current_score_multiplier,
 		"combo_time_left": timer_manager.get_time_left(),
+		"slow_time_left": timer_manager.get_slow_time_left(),
 	})
 
 func _restore(saved: Dictionary) -> void:
@@ -178,3 +185,7 @@ func _restore(saved: Dictionary) -> void:
 		GameConfig.current_score_multiplier = multiplier
 		top_tray.set_combo(multiplier)
 		timer_manager.start_combo_timer(time_left)
+
+	var slow_left = float(saved.get("slow_time_left", 0.0))
+	if slow_left > 0.0:
+		timer_manager.slow_down(slow_left, GameConfig.slow_time_factor)

@@ -3,6 +3,7 @@ extends Node2D
 signal score_changed(new_score: int)
 signal combo_changed(new_multiplier: int)
 signal start_combo_timer()
+signal slow_time_used()  # the hourglass was dropped (main.gd slows the combo timer)
 signal powerup_finished()  # a power-up's effect is done and the cells it cleared are free
 
 var score: int = 0
@@ -265,7 +266,7 @@ func get_powerup_area(key: String, col: int, row: int) -> Array[Vector2i]:
 						var tile = grid_data[r][c]
 						if tile and _same_color(tile.block_color, target.block_color):
 							cells.append(Vector2i(c, r))
-		"booster":
+		"booster", "hourglass":
 			cells.append(Vector2i(col, row))
 	return cells
 
@@ -291,6 +292,11 @@ func activate_powerup(key: String, visual: Node2D, col: int, row: int) -> void:
 			_clear_color(cell, area)
 		"booster":
 			_boost(cell)
+		"hourglass":
+			slow_time_used.emit()
+			_spawn_floating_text(tr("POWERUP_SLOW_TIME"), cell_to_local_center(cell), Color(0.6, 0.85, 1.0), 44)
+			Sfx.play("combo_up", 0.7)
+			Settings.vibrate(30)
 	powerup_finished.emit()
 
 # Cells inside the blast circle: every cell whose center is within radius + 0.5 of the bomb's cell,

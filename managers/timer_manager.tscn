@@ -4,10 +4,3 @@
 
 [node name="TimerManager" type="Node" unique_id=867230725]
 script = ExtResource("1_lvjry")
-
-[node name="ComboTimer" type="Timer" parent="." unique_id=1186613786]
-wait_time = 5.0
-one_shot = true
-autostart = false
-
-[connection signal="timeout" from="ComboTimer" to="." method="_on_combo_timer_timeout"]

@@ -3,7 +3,7 @@
 A mobile block puzzle game in **Godot 4.7** (GDScript, "Mobile" renderer, 720×1280 portrait base viewport,
 `canvas_items` stretch with `expand` aspect). It's inspired by Block Blast, not a copy: drag pieces from a 3-slot
 tray onto a 10×12 grid, clear full rows and columns, chain clears for a score multiplier with a combo timer, and use
-power-ups (bomb, laser, prism, booster).
+power-ups (bomb, laser, prism, booster, hourglass).
 
 ## Working on this repo
 
@@ -33,7 +33,7 @@ power-ups (bomb, laser, prism, booster).
 | `checkpoint-04-music-player` | More public-domain tracks (14 total), a music player in Options (now playing, progress and time, previous and next) |
 | `checkpoint-05-backpack` | Backpack bar with 3 power-up slots (slots 2 and 3 unlock for good at 250K and 750K), compact score numbers (75.3K, 1.25M), music paused when turned off, unused sound controls hidden |
 | `checkpoint-06-languages` | Language support: English, Brazilian Portuguese and Spanish, automatic from the phone's language with a Language option in Options |
-| `checkpoint-07-powerups` | Generic power-up system, new laser / prism / booster, smaller bomb (radius 2), 5 backpack slots unlocking at 20K / 50K / 100K / 500K (only from scores reached in a game), at most 1 power-up per tray batch |
+| `checkpoint-07-powerups` | Generic power-up system, new laser / prism / booster / rare hourglass (half-speed combo timer for 30s), smaller bomb (radius 2), 5 backpack slots unlocking at 20K / 50K / 100K / 500K (only from scores reached in a game), at most 1 power-up per tray batch |
 
 ## Project layout
 
@@ -44,7 +44,7 @@ scenes/
   main.tscn/gd     the game screen, wires everything together
   blocks/          a single block (tile) and how it's drawn
   controls/        top tray (HUD), bottom tray (3 piece slots), a tray piece
-  powerups/        the power-ups' drawings and effects (bomb scene, drawn laser / prism / booster)
+  powerups/        the power-ups' drawings and effects (bomb scene, drawn laser / prism / booster / hourglass)
   effects/         particle bursts and floating text
   ui/              menus, HUD widgets, backpack, shared UI styling
 assets/music/  public-domain music tracks + CREDITS.md (source and license of each)
@@ -57,7 +57,7 @@ tools/         asset generator scripts (ignored by Godot)
 
 | Name | Script | Role |
 |---|---|---|
-| `GameConfig` | `configs/game_config.gd` | Tuning values (points, bomb radius and fuse, booster amount, backpack unlock scores) and run state (`current_score_multiplier`, `cell_size`) |
+| `GameConfig` | `configs/game_config.gd` | Tuning values (points, bomb radius and fuse, booster amount, slow-time speed and length, backpack unlock scores) and run state (`current_score_multiplier`, `cell_size`) |
 | `ShapeDefinitions` | `configs/shape_definitions.gd` | Every piece shape (cell offsets) and every power-up's data (`POWERUPS`) |
 | `Settings` | `configs/settings.gd` | Player options and stats in `user://settings.cfg`, creates the `SFX` and `Music` audio buses, `vibrate()` |
 | `Sfx` | `managers/sfx.gd` | Sound effects synthesized in code at startup (no files), a pool of players on the SFX bus |
@@ -88,6 +88,10 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   - **laser:** clears the target's whole row and column.
   - **prism:** clears every block with the target's color, and can only be dropped on a block.
   - **booster:** goes anywhere, raises the multiplier by `GameConfig.booster_multiplier` and refills the combo timer.
+  - **hourglass (rare, 1.5%):** goes anywhere. For `GameConfig.slow_time_duration` (30) real seconds the combo timer
+    runs at `GameConfig.slow_time_factor` (0.5, half speed), and the badge's ring turns icy blue. The grid emits
+    `slow_time_used` and `main.gd` calls `timer_manager.slow_down()`. Using another one restarts the 30s. The time
+    left is saved with the run.
 - **The visuals:** each power-up's `visual` in `POWERUPS` is a scene or script with `fit_to(diameter)`,
   `start_idle()` and `activate(target)` (fly to the target, play a flair, free itself). The grid applies the effect
   after `activate` ends. The bomb is a scene, and the others extend `scenes/powerups/powerup_visual.gd` and draw
@@ -122,7 +126,8 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   For a power-up it first waits for `grid_manager.powerup_finished`, because cells only free up once its animation is
   done.
 - **The combo multiplier** goes up with each cleared line (`grid_manager.cleared_row_or_column`). It resets in
-  `main.gd` on `timer_manager.combo_expired`; the HUD only displays it.
+  `main.gd` on `timer_manager.combo_expired`; the HUD only displays it. The combo timer is counted by hand in
+  `timer_manager._process`, not with a `Timer` node, so it can run slower. It pauses with the tree.
 - **Line clears** free their cells immediately, then animate the tiles in a wave from where the piece landed.
 - **Pieces that don't fit** are dimmed after every move (`main._update_playable`).
 
@@ -204,12 +209,6 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
 - **Every batch of 3 tray pieces must be 3 different pieces** (no repeated shape in the same batch). Roll the batch
   as a whole in `bottom_tray`, not one slot at a time.
 - The testing shortcut in `randomize_shape()` (always `square_3x3`) goes away as part of this.
-
-### Power-ups
-- **More ideas:**
-  - a **hammer** that breaks a single block;
-  - a **shuffle** that rerolls the tray;
-  - a **wildcard** 1×1 block that fills any empty cell.
 
 ## Known leftovers
 - `randomize_shape()` in `randomized_block.gd` has a testing shortcut that always returns `square_3x3`. Remove it to

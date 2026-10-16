@@ -74,6 +74,16 @@ const POWERUPS := {
 		"drag_alpha": 0.9,
 		"ghost": Color(1, 0.82, 0.25),
 	},
+	# rare: drop anywhere on the board, the combo timer runs at GameConfig.slow_time_factor speed for a while
+	"hourglass": {
+		"visual": "res://scenes/powerups/powerup_hourglass.gd",
+		"cells": [Vector2i(0,0)],
+		"spawn_chance": 0.015,
+		"tray_size_ratio": 0.42,
+		"drag_size_cells": 0.9,
+		"drag_alpha": 0.9,
+		"ghost": Color(0.55, 0.8, 1.0),
+	},
 }
 
 # Opacity of a regular shape while dragged

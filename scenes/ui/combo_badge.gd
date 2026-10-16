@@ -13,6 +13,7 @@ var _fraction: float = 1.0  # combo time left, 0..1
 var _multiplier: int = 1
 var _label: Label
 var _pop_tween: Tween
+var _slowed: bool = false  # the hourglass is slowing the timer down
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -42,6 +43,10 @@ func set_multiplier(value: int) -> void:
 
 func set_time_fraction(value: float) -> void:
 	_fraction = clampf(value, 0.0, 1.0)
+	queue_redraw()
+
+func set_slowed(active: bool) -> void:
+	_slowed = active
 	queue_redraw()
 
 # Fades out and goes back to x1
@@ -79,4 +84,5 @@ func _draw() -> void:
 	draw_arc(center, radius, 0.0, TAU, 64, Color(1, 1, 1, 0.12), ring, true)
 	if _fraction > 0.0:
 		# starts at the top and empties clockwise
-		draw_arc(center, radius, -PI / 2.0, -PI / 2.0 + TAU * _fraction, 64, _heat_color(), ring, true)
+		var ring_color = Color(0.55, 0.82, 1.0) if _slowed else _heat_color()
+		draw_arc(center, radius, -PI / 2.0, -PI / 2.0 + TAU * _fraction, 64, ring_color, ring, true)

@@ -103,6 +103,10 @@ func set_combo(new_combo: int) -> void:
 func reset_combo() -> void:
 	_badge.hide_badge()
 
+# While the hourglass is active the badge's ring turns icy blue
+func set_slow_time(active: bool) -> void:
+	_badge.set_slowed(active)
+
 func update_combo_timer(remaining: float, total: float = 5.0) -> void:
 	_badge.set_time_fraction(remaining / total)
 
