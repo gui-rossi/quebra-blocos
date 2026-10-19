@@ -17,9 +17,17 @@ power-ups (bomb, laser, prism, booster, hourglass).
 - **Commit and push as soon as a feature or fix is done, without waiting to be asked.** The owner tests from the
   remote branch after the push. **Update this file in every push** (checkpoint table, architecture notes, plans).
 - **Checkpoints:** each milestone is an annotated git **tag** named `checkpoint-NN-<name>` on the work branch
-  (currently `enhancements`), pushed to GitHub. Follow-up fixes for a milestone go in a new commit, then the tag is
-  moved with `git tag -f -a` and force-pushed with `git.exe push --force origin <tag>`. `git tag -l` shows the next
-  number.
+  (currently `enhancements`), pushed to GitHub. They're tags, not branches. `git tag -l` shows the next number.
+- **How work is organized around checkpoints:**
+  1. The owner starts a new checkpoint when they ask for a new feature or milestone ("next checkpoint",
+     "checkpoint 8"). Build it, update this file (checkpoint table, architecture notes, plans), commit, create the
+     next `checkpoint-NN-<name>` tag, and push the branch and the tag.
+  2. The owner tests from the remote. Fixes and tweaks they ask for "on this checkpoint" go in a new commit on the
+     same branch. Then the existing tag is moved to it (`git tag -f -a checkpoint-NN-<name> -m "..." HEAD`) and
+     force-pushed (`git.exe push --force origin checkpoint-NN-<name>`).
+  3. Changes to docs or plans only (this file, README) are folded into the current checkpoint the same way.
+  4. Never move an older checkpoint's tag unless the owner asks. A checkpoint is the point to go back to if
+     something breaks.
 - **`README.md`** explains how to run the game and build a Windows `.exe` or an Android `.apk`/`.aab`. Builds
   go in `build/`, which is gitignored.
 - **`.import` files:** Godot creates them when the project opens (one per asset, including every music track). Commit
@@ -245,6 +253,23 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   next to it.
 - **Optional:** the same crown on the main menu's and game over's best score, and a short shine on the crown when a
   new best is reached during a game.
+
+### Blocks worth more as the game goes on
+- **Idea:** make every block increasingly valuable as a game progresses, so long runs feel rewarding and scores keep
+  climbing. Today a block is always worth `GameConfig.points_per_block` (10), times the combo multiplier.
+- **Ways to measure progress:** lines cleared in this game, pieces placed, time played, or score bands. Lines
+  cleared ties the reward to what the player does.
+- **Possible curves:**
+  - steps (e.g. +5 points per block every 10 lines cleared);
+  - a gentle linear or logarithmic growth, so late values don't explode;
+  - "levels" with a short "Level up! Blocks now worth 20" banner, which also gives a moment of celebration.
+- **Where it would go:** a `points_per_block_now()` helper (in `GameConfig` or `grid_manager`) used everywhere
+  `GameConfig.points_per_block` is read today: line clears and `_destroy_cells` for power-ups in
+  `grid_manager.gd`. The current value (or level) is saved with the run.
+- **Show it:** the HUD could show the current block value or level (e.g. under the multiplier badge), so players see
+  it grow.
+- **Balance:** it combines with the combo multiplier and the planned difficulty curve (bigger pieces later). The
+  backpack unlock scores (20K–500K) may need retuning once scores grow faster.
 
 ## Known leftovers
 - `randomize_shape()` in `randomized_block.gd` has a testing shortcut that always returns `square_3x3`. Remove it to
