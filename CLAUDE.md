@@ -1,4 +1,4 @@
-# Block Blast: Enhanced!
+# Blockpack: Block Puzzle
 
 (The repo and folder are still called `quebra-blocos`, the game's original name.)
 
@@ -187,7 +187,7 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   `_notification(NOTIFICATION_TRANSLATION_CHANGED)` (see `top_tray.gd`, `main_menu.gd`, `options_panel.gd`,
   `game_over_panel.gd`).
 - **Things that aren't translated:** turn auto-translation off (`auto_translate_mode = DISABLED`) on labels showing
-  text that must stay as it is (music titles) or that's already translated. The game's name "Block Blast: Enhanced!" isn't
+  text that must stay as it is (music titles) or that's already translated. The game's name "Blockpack: Block Puzzle" isn't
   translated either.
 - **Choosing the language:** `Settings.language` is `""` (automatic, which follows `OS.get_locale()`) or a code from
   `Settings.LANGUAGES`. `Settings.set_language()` applies it right away and saves it. Godot matches the closest
