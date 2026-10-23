@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="quebra-blocos"
+config/name="Block Blast: Enhanced!"
 run/main_scene="res://scenes/ui/main_menu.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"

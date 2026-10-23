@@ -29,7 +29,8 @@ func _ready() -> void:
 	_menu = UiStyle.vbox(24)
 	holder.add_child(_menu)
 
-	_title = UiStyle.label("Quebra\nBlocos", 110, Color(1, 0.9, 0.35), 16)
+	# Longer than the old "Quebra Blocos", so a smaller size keeps "Block Blast:" inside the 720px-wide screen
+	_title = UiStyle.label("Block Blast:\nEnhanced!", 84, Color(1, 0.9, 0.35), 14)
 	_menu.add_child(_title)
 	_best = UiStyle.label("", 34, UiStyle.TEXT_SOFT)
 	_menu.add_child(_best)

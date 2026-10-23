@@ -1,4 +1,6 @@
-# quebra-blocos
+# Block Blast: Enhanced!
+
+(The repo and folder are still called `quebra-blocos`, the game's original name.)
 
 A mobile block puzzle game in **Godot 4.7** (GDScript, "Mobile" renderer, 720×1280 portrait base viewport,
 `canvas_items` stretch with `expand` aspect). It's inspired by Block Blast, not a copy: drag pieces from a 3-slot
@@ -185,7 +187,7 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   `_notification(NOTIFICATION_TRANSLATION_CHANGED)` (see `top_tray.gd`, `main_menu.gd`, `options_panel.gd`,
   `game_over_panel.gd`).
 - **Things that aren't translated:** turn auto-translation off (`auto_translate_mode = DISABLED`) on labels showing
-  text that must stay as it is (music titles) or that's already translated. The game's name "Quebra Blocos" isn't
+  text that must stay as it is (music titles) or that's already translated. The game's name "Block Blast: Enhanced!" isn't
   translated either.
 - **Choosing the language:** `Settings.language` is `""` (automatic, which follows `OS.get_locale()`) or a code from
   `Settings.LANGUAGES`. `Settings.set_language()` applies it right away and saves it. Godot matches the closest
