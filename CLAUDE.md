@@ -251,6 +251,22 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   - **Menu screen:** a skins screen with 3 tabs (board, trays, pieces). Each skin is a small live preview, a few
     blocks on a mini board, so it reuses the real drawing code instead of image files.
 
+### A better main menu logo
+- **Today** the title is just "Blockpack" as yellow text (`UiStyle.label` in `main_menu.gd`) with a slow bob and tilt
+  (`_animate_title`). The goal is a logo that looks like a game logo and has some life to it. **Not decided yet**;
+  think it through with the owner before building.
+- **Animation ideas:**
+  - blocks falling from the top of the screen and landing to form the word, or into place around it;
+  - the letters dropping in one by one with a bounce, then a short line-clear flash across the word;
+  - a piece sliding into a gap in the word, like placing a piece on the board;
+  - the backpack opening and power-ups (bomb, star, diamond) popping out;
+  - after the intro, small idle touches, e.g. a shine sweeping across the letters every few seconds.
+- **A first try that was rejected:** a static logo with an L piece made of blocks for the "L" and the backpack sprite
+  for the "O" ("B L O CKPACK"). It's in git history (commit `c2c3c1e`, reverted in `44ec3eb`) if parts of it are
+  useful, e.g. how it lined blocks and the backpack up on the text's baseline.
+- **Keep in mind:** it should still read well at phone size, keep the same colors as the app icon (yellow letters,
+  cyan L piece, brown backpack), and the intro shouldn't delay the menu buttons; they can be usable right away.
+
 ### Crown next to the best score
 - **A small gold crown icon** to the left of the best score in the top tray (`top_tray.gd`, the "BEST 12K" label
   under the score), so the record reads at a glance in any language.
