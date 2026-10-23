@@ -31,8 +31,6 @@ func _ready() -> void:
 
 	_title = UiStyle.label("Blockpack", 110, Color(1, 0.9, 0.35), 16)
 	_menu.add_child(_title)
-	# The game's name isn't translated, the subtitle included
-	_menu.add_child(UiStyle.label("Block Puzzle", 40, UiStyle.TEXT_SOFT))
 	_best = UiStyle.label("", 34, UiStyle.TEXT_SOFT)
 	_menu.add_child(_best)
 	_update_texts()

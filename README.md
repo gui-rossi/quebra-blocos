@@ -1,4 +1,4 @@
-# Blockpack: Block Puzzle
+# Blockpack
 
 A mobile block puzzle game made with **Godot 4.7**: drag pieces from the tray onto a 10×12 board, clear full rows
 and columns, chain clears for a bigger score multiplier, and use power-ups (bomb, laser, prism, booster, hourglass)
