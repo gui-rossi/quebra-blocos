@@ -7,7 +7,7 @@ signal combo_expired
 signal update_combo_timer(time_left: float, total: float)
 signal slow_time_changed(active: bool)  # the hourglass power-up started or wore off
 
-@export var combo_reset_time: float = 5.0
+@export var combo_reset_time: float = 15.0  # seconds the multiplier lasts after each cleared line
 
 var _time_left: float = 0.0
 var _running: bool = false

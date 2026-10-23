@@ -43,7 +43,7 @@ power-ups (bomb, laser, prism, booster, hourglass).
 | `checkpoint-04-music-player` | More public-domain tracks (14 total), a music player in Options (now playing, progress and time, previous and next) |
 | `checkpoint-05-backpack` | Backpack bar with 3 power-up slots (slots 2 and 3 unlock for good at 250K and 750K), compact score numbers (75.3K, 1.25M), music paused when turned off, unused sound controls hidden |
 | `checkpoint-06-languages` | Language support: English, Brazilian Portuguese and Spanish, automatic from the phone's language with a Language option in Options |
-| `checkpoint-07-powerups` | Generic power-up system, new laser / prism / booster / rare hourglass (half-speed combo timer for 30s), smaller bomb (radius 2), 5 backpack slots unlocking at 20K / 50K / 100K / 500K (only from scores reached in a game), at most 1 power-up per tray batch |
+| `checkpoint-07-powerups` | Generic power-up system, new laser / prism / booster / rare hourglass (half-speed combo timer for 30s), smaller bomb (radius 2), 5 backpack slots unlocking at 20K / 50K / 100K / 500K (only from scores reached in a game), at most 1 power-up per tray batch, combo multiplier lasts 15s (was 5s) |
 
 ## Project layout
 
@@ -136,7 +136,8 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   For a power-up it first waits for `grid_manager.powerup_finished`, because cells only free up once its animation is
   done.
 - **The combo multiplier** goes up with each cleared line (`grid_manager.cleared_row_or_column`). It resets in
-  `main.gd` on `timer_manager.combo_expired`; the HUD only displays it. The combo timer is counted by hand in
+  `main.gd` on `timer_manager.combo_expired`; the HUD only displays it. Each cleared line restarts the combo timer at
+  `TimerManager.combo_reset_time` (15 s). The combo timer is counted by hand in
   `timer_manager._process`, not with a `Timer` node, so it can run slower. It pauses with the tree.
 - **Line clears** free their cells immediately, then animate the tiles in a wave from where the piece landed.
 - **Pieces that don't fit** are dimmed after every move (`main._update_playable`).
