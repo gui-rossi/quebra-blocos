@@ -39,6 +39,8 @@ func _ready() -> void:
 	drag_controller.backpack = backpack
 	grid_manager.score_changed.connect(backpack.update_unlocks)
 	grid_manager.score_target = top_tray.get_score_global_center
+	grid_manager.fragments_launched.connect(top_tray.on_fragments_launched)
+	grid_manager.fragment_arrived.connect(top_tray.on_fragment_arrived)
 
 	top_tray.settings_pressed.connect(_open_pause)
 	top_tray.set_best(Settings.best_score)

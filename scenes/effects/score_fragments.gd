@@ -1,7 +1,8 @@
 extends Node2D
 
 # A broken block's fragments: they burst out and fall for a moment, then converge and fly into the score number
-# (`target`, global). One node per broken block, freed when the last fragment arrives.
+# (`target`, global). One node per broken block, freed when the last fragment arrives. `arrived` is called once per
+# fragment as it reaches the score, so the HUD can count the score up as they land.
 
 const BURST_TIME := 0.3  # seconds of falling before they head for the score
 const FLY_TIME := 0.5  # seconds each fragment takes to reach the score
@@ -11,13 +12,17 @@ var color: Color = Color.WHITE
 var size: float = 32.0  # tile size, fragments scale with it
 var amount: int = 8
 var target: Vector2 = Vector2.ZERO  # global position of the score number
+var arrived: Callable  # called once for each fragment that reaches the score
+
+# How many fragments a broken block makes (fewer with effects set to low)
+static func fragment_count() -> int:
+	return 8 if Settings.effects_high else 3
 
 var _time: float = 0.0
 var _fragments: Array = []  # each: {pos, vel, spin, angle, size, leave, start, control}
 
 func play() -> void:
-	var count = amount if Settings.effects_high else maxi(3, int(amount / 2.5))
-	for i in count:
+	for i in amount:
 		var dir = Vector2.from_angle(randf_range(-PI, 0.0))  # mostly up and to the sides first
 		_fragments.append({
 			"pos": global_position + Vector2(randf_range(-0.35, 0.35), randf_range(-0.35, 0.35)) * size,
@@ -28,6 +33,7 @@ func play() -> void:
 			"leave": BURST_TIME + randf() * FLY_STAGGER,
 			"start": Vector2.ZERO,
 			"control": Vector2.ZERO,
+			"done": false,
 		})
 
 func _process(delta: float) -> void:
@@ -47,6 +53,10 @@ func _process(delta: float) -> void:
 			continue
 		var t = clampf((_time - f.leave) / FLY_TIME, 0.0, 1.0)
 		if t >= 1.0:
+			if not f.done:
+				f.done = true
+				if arrived.is_valid():
+					arrived.call()
 			continue
 		alive += 1
 		var e = t * t  # speeds up as it goes, like being pulled in

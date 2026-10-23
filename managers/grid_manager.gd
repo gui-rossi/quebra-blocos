@@ -4,6 +4,8 @@ signal score_changed(new_score: int)
 signal combo_changed(new_multiplier: int)
 signal start_combo_timer()
 signal slow_time_used()  # the hourglass was dropped (main.gd slows the combo timer)
+signal fragments_launched(count: int)  # broken blocks' fragments about to fly to the score (sent before the score changes)
+signal fragment_arrived()  # one of them reached the score number
 signal powerup_finished()  # a power-up's effect is done and the cells it cleared are free
 
 var score: int = 0
@@ -395,9 +397,15 @@ func _animate_tile_destroyed(tile: Node2D, delay: float) -> void:
 	var color: Color = tile.block_color
 	var tile_center = tile.position + control.size / 2.0
 
+	# the fragments are counted now, before the score changes, so the HUD knows to wait for them
+	var fragments := 0
+	if score_target.is_valid():
+		fragments = ScoreFragments.fragment_count()
+		fragments_launched.emit(fragments)
+
 	var tween = tile.create_tween()
 	tween.tween_interval(delay)
-	tween.tween_callback(_spawn_break.bind(tile_center, color))
+	tween.tween_callback(_spawn_break.bind(tile_center, color, fragments))
 	tween.tween_property(tile, "modulate", Color(1.6, 1.6, 1.6), 0.06)  # flashes bright before breaking
 	tween.parallel().tween_property(control, "scale", Vector2(1.2, 1.2), 0.06)
 	tween.tween_property(control, "scale", Vector2.ZERO, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
@@ -426,15 +434,17 @@ func _animate_tile_placed(tile: Node2D, delay: float) -> void:
 
 # A broken block's fragments: they fall for a moment, then fly into the score number (score_target, set by main.gd).
 # Falls back to a plain burst if there's nowhere to fly to.
-func _spawn_break(local_position: Vector2, color: Color) -> void:
-	if not score_target.is_valid():
+func _spawn_break(local_position: Vector2, color: Color, count: int) -> void:
+	if count <= 0:
 		_spawn_burst(local_position, color, 14, 1.0)
 		return
 	var fragments = ScoreFragments.new()
 	fragments.position = local_position
 	fragments.color = color
 	fragments.size = cell_size
+	fragments.amount = count
 	fragments.target = score_target.call()
+	fragments.arrived = fragment_arrived.emit
 	add_child(fragments)
 	fragments.play()
 

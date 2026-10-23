@@ -156,6 +156,11 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   shrinking and brightening on the way. `grid_manager.score_target` (set by `main.gd` to
   `top_tray.get_score_global_center`) says where to fly; without it, the old falling burst (`block_burst.gd`) is used.
   That burst is still used for the soft puff when a piece is placed.
+- **The score number counts up as the fragments land.** `grid_manager.score` (the real score: saving, unlocks, game
+  over) changes right away, but the HUD waits: when a block breaks, the grid sends `fragments_launched(count)` before
+  the score changes, then `fragment_arrived` for each fragment that reaches the score. `top_tray` shows a share of
+  the waiting points on each arrival (all of them with the last), with a small punch at most every 90ms. If nothing
+  lands for 2.5s it catches up on its own (`_catch_up_later`), so the number can't get stuck.
 - **Pieces that don't fit** are dimmed after every move (`main._update_playable`), including a prism while the
   board has no blocks (`grid_manager.can_place_powerup_anywhere`).
 - **The multiplier number catches fire** (`combo_badge.gd`, drawn in code) from `GameConfig.fire_multiplier` (x5):
