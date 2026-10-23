@@ -38,6 +38,7 @@ const POWERUPS := {
 	"bomb": {
 		"visual": "res://scenes/powerups/powerup_bomb.tscn",
 		"cells": [Vector2i(0,0)],  # a single cell: the target, also keeps the slot "in use" for the tray
+		"trash_score": 100,  # points for dropping it in the trash can (rarer ones give more)
 		"spawn_chance": 0.06,
 		"tray_size_ratio": 0.42,
 		"drag_size_cells": 0.9,  # big in the tray, shrinks to about a cell so the preview stays visible
@@ -48,6 +49,7 @@ const POWERUPS := {
 	"laser": {
 		"visual": "res://scenes/powerups/powerup_laser.gd",
 		"cells": [Vector2i(0,0)],
+		"trash_score": 150,  # points for dropping it in the trash can (rarer ones give more)
 		"spawn_chance": 0.05,
 		"tray_size_ratio": 0.42,
 		"drag_size_cells": 0.9,
@@ -58,6 +60,7 @@ const POWERUPS := {
 	"prism": {
 		"visual": "res://scenes/powerups/powerup_prism.gd",
 		"cells": [Vector2i(0,0)],
+		"trash_score": 200,  # points for dropping it in the trash can (rarer ones give more)
 		"spawn_chance": 0.04,
 		"tray_size_ratio": 0.42,
 		"drag_size_cells": 0.9,
@@ -68,6 +71,7 @@ const POWERUPS := {
 	"booster": {
 		"visual": "res://scenes/powerups/powerup_booster.gd",
 		"cells": [Vector2i(0,0)],
+		"trash_score": 200,  # points for dropping it in the trash can (rarer ones give more)
 		"spawn_chance": 0.04,
 		"tray_size_ratio": 0.42,
 		"drag_size_cells": 0.9,
@@ -78,6 +82,7 @@ const POWERUPS := {
 	"hourglass": {
 		"visual": "res://scenes/powerups/powerup_hourglass.gd",
 		"cells": [Vector2i(0,0)],
+		"trash_score": 400,  # points for dropping it in the trash can (rarer ones give more)
 		"spawn_chance": 0.015,
 		"tray_size_ratio": 0.42,
 		"drag_size_cells": 0.9,
@@ -110,6 +115,10 @@ func roll_powerup_name() -> String:
 		if roll < 0.0:
 			return key
 	return ""
+
+# Points a power-up gives when it's dropped in the trash can
+func get_trash_score(powerup_name: String) -> int:
+	return int(get_powerup(powerup_name).get("trash_score", 0))
 
 func get_powerup(powerup_name: String) -> Dictionary:
 	return POWERUPS.get(powerup_name, {})

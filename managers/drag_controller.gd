@@ -35,6 +35,15 @@ func _input(event: InputEvent) -> void:
 			dragging_container.global_position = event.position
 			_touch_position = event.position
 
+			# any power-up over the trash can: open its lid instead of highlighting the grid
+			if _is_dragging_powerup():
+				var over_trash = backpack.trash_at(event.position)
+				backpack.set_trash_hover(over_trash)
+				if over_trash:
+					backpack.set_hover(null)
+					grid_manager.clear_highlight()
+					return
+
 			# a power-up from the tray over a free backpack slot: highlight the slot instead of the grid
 			if _can_store_dragged():
 				var slot = backpack.free_slot_at(event.position)
@@ -105,6 +114,8 @@ func _start_drag(piece: CanvasItem, touch_position: Vector2) -> void:
 
 	if _can_store_dragged():
 		backpack.set_accepting(true)
+	if _is_dragging_powerup():
+		backpack.set_trash_accepting(true)
 
 func _end_drag() -> void:
 	var container = dragging_container
@@ -114,6 +125,14 @@ func _end_drag() -> void:
 	if _drag_scale_tween:
 		_drag_scale_tween.kill()
 		_drag_scale_tween = null
+
+	if _is_dragging_powerup():
+		var over_trash = backpack.trash_at(_touch_position)
+		backpack.set_trash_accepting(false)
+		if over_trash:
+			backpack.set_accepting(false)
+			_trash_dragged(container, piece)
+			return
 
 	if _can_store_dragged():
 		var slot = backpack.free_slot_at(_touch_position)
@@ -161,10 +180,36 @@ func cancel_drag() -> void:
 		_drag_scale_tween = null
 	if backpack:
 		backpack.set_accepting(false)
+		backpack.set_trash_accepting(false)
 	_return_container(dragging_container, dragging_piece)
 	grid_manager.clear_highlight()
 	dragging_container = null
 	dragging_piece = null
+
+# Any power-up, from the tray or the backpack, can be dropped in the trash can
+func _is_dragging_powerup() -> bool:
+	return backpack != null and dragging_piece != null and dragging_piece.powerup_name != ""
+
+# Throws the dragged power-up away for its trash score. Its tray slot or backpack slot is used up, like placing it,
+# so a power-up with nowhere to go on the board (a prism on an empty board) can never leave the game stuck.
+func _trash_dragged(container: Node2D, piece: CanvasItem) -> void:
+	var points = ShapeDefinitions.get_trash_score(piece.powerup_name)
+	piece.take_powerup()
+	for child in container.get_children():
+		child.queue_free()
+	_return_container(container, piece)
+	piece.shape_cells = []
+
+	grid_manager.clear_highlight()
+	dragging_container = null
+	dragging_piece = null
+
+	grid_manager.add_score(points)
+	backpack.trashed(points)
+	Sfx.play("place", 0.7)
+	Settings.vibrate(15)
+	bottom_tray.check_and_respawn_if_needed()
+	piece_dropped.emit(false)
 
 # A power-up dragged from the tray (not one already in the backpack) can be dropped in a backpack slot
 func _can_store_dragged() -> bool:

@@ -270,6 +270,23 @@ func get_powerup_area(key: String, col: int, row: int) -> Array[Vector2i]:
 			cells.append(Vector2i(col, row))
 	return cells
 
+# Whether the power-up has somewhere to go on the board right now (the prism needs at least one block)
+func can_place_powerup_anywhere(key: String) -> bool:
+	if key != "prism":
+		return true
+	for r in range(MAX_ROWS):
+		for c in range(MAX_COLUMNS):
+			if grid_data[r][c] != null:
+				return true
+	return false
+
+# Points that don't come from clearing blocks (e.g. a power-up dropped in the trash can)
+func add_score(points: int) -> void:
+	if points <= 0:
+		return
+	score += points
+	score_changed.emit(score)
+
 func can_place_powerup(key: String, col: int, row: int) -> bool:
 	if not is_in_grid(col, row):
 		return false
@@ -342,7 +359,7 @@ func _clear_color(cell: Vector2i, area: Array) -> void:
 
 # Booster: the multiplier goes up and the combo timer refills
 func _boost(cell: Vector2i) -> void:
-	GameConfig.current_score_multiplier += GameConfig.booster_multiplier
+	GameConfig.current_score_multiplier = mini(GameConfig.current_score_multiplier + GameConfig.booster_multiplier, GameConfig.max_score_multiplier)
 	combo_changed.emit(GameConfig.current_score_multiplier)
 	start_combo_timer.emit()
 	_spawn_floating_text(tr("POWERUP_BOOSTER") % GameConfig.booster_multiplier, cell_to_local_center(cell), Color(1, 0.85, 0.3), 44)
@@ -552,6 +569,6 @@ func _draw() -> void:
 	draw_style_box(panel, board)
 
 func cleared_row_or_column() -> void:
-	GameConfig.current_score_multiplier += 1
+	GameConfig.current_score_multiplier = mini(GameConfig.current_score_multiplier + 1, GameConfig.max_score_multiplier)
 	combo_changed.emit(GameConfig.current_score_multiplier)
 	start_combo_timer.emit()

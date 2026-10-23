@@ -1,7 +1,8 @@
 extends Control
 
 # Score multiplier badge: "x3" inside a ring that empties as the combo time runs out.
-# Gets hotter (yellow to red) as the multiplier grows.
+# Gets hotter (yellow to red) as the multiplier grows, and catches fire from GameConfig.fire_multiplier (x5),
+# burning bigger up to GameConfig.max_score_multiplier (x10).
 
 const RING_RATIO := 0.08  # ring width, relative to the badge's size (same as the settings button)
 
@@ -14,10 +15,17 @@ var _multiplier: int = 1
 var _label: Label
 var _pop_tween: Tween
 var _slowed: bool = false  # the hourglass is slowing the timer down
+var _fire_time: float = 0.0  # drives the flames' flicker
+
+# Fire colors, outside to inside
+const FIRE_OUTER := Color(0.95, 0.25, 0.08, 0.85)
+const FIRE_MID := Color(1.0, 0.55, 0.1, 0.9)
+const FIRE_INNER := Color(1.0, 0.88, 0.35, 0.95)
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	modulate.a = 0.0
+	set_process(false)
 
 	_label = Label.new()
 	_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -36,6 +44,7 @@ func set_multiplier(value: int) -> void:
 	_label.add_theme_color_override("font_color", _heat_color())
 	_update_font()
 	_fraction = 1.0
+	set_process(_fire_intensity() >= 0.0)
 	queue_redraw()
 
 	if rising:
@@ -52,6 +61,7 @@ func set_slowed(active: bool) -> void:
 # Fades out and goes back to x1
 func hide_badge() -> void:
 	_multiplier = 1
+	set_process(false)
 	var tween = create_tween()
 	tween.tween_property(self, "modulate:a", 0.0, 0.25)
 
@@ -75,11 +85,68 @@ func _heat_color() -> Color:
 	var heat = clampf((_multiplier - 2) / 6.0, 0.0, 1.0)
 	return Color.from_hsv(lerpf(0.15, 0.0, heat), 0.85, 1.0)
 
+func _process(delta: float) -> void:
+	_fire_time += delta
+	queue_redraw()
+
+# -1 below the fire threshold, then 0 at x5 up to 1 at the max multiplier
+func _fire_intensity() -> float:
+	if _multiplier < GameConfig.fire_multiplier:
+		return -1.0
+	var span = maxf(1.0, float(GameConfig.max_score_multiplier - GameConfig.fire_multiplier))
+	return clampf((_multiplier - GameConfig.fire_multiplier) / span, 0.0, 1.0)
+
+# Flames licking up from the top of the badge: more, taller tongues as the intensity grows, plus embers near the max
+func _draw_fire(center: Vector2, radius: float, intensity: float) -> void:
+	var t = _fire_time
+	draw_circle(center, radius * (1.05 + 0.15 * intensity), Color(1.0, 0.45, 0.1, 0.12 + 0.2 * intensity))
+
+	var count = 5 + int(round(4.0 * intensity))
+	var height = radius * (0.55 + 1.0 * intensity)
+	for layer in [[FIRE_OUTER, 1.0], [FIRE_MID, 0.72], [FIRE_INNER, 0.45]]:
+		for i in count:
+			# spread over the upper arc, from left to right
+			var a = deg_to_rad(lerpf(-165.0, -15.0, (i + 0.5) / count))
+			var dir = Vector2(cos(a), sin(a))
+			var up = (dir * 0.35 + Vector2(0, -0.65)).normalized()
+			var flicker = 0.75 + 0.25 * sin(t * 9.0 + i * 1.7) + 0.1 * sin(t * 23.0 + i * 3.1)
+			var tall = 0.55 + 0.45 * -dir.y  # the ones on top burn tallest
+			var h = height * tall * flicker * layer[1]
+			var w = radius * 0.62 * layer[1]
+			var base = center + dir * radius * 0.82
+			_draw_flame(base, up, h, w, sin(t * 6.0 + i * 2.2) * w * 0.35, layer[0])
+
+	# embers floating up once the fire is big
+	if intensity > 0.4:
+		for j in 7:
+			var phase = fmod(t * 0.7 + j / 7.0, 1.0)
+			var x = sin(j * 2.3 + t * 1.5) * radius * 0.7
+			var pos = center + Vector2(x, -radius * (0.7 + 1.6 * phase) - height * 0.3)
+			draw_circle(pos, radius * 0.05 * (1.0 - phase * 0.6), Color(1.0, 0.75, 0.3, (1.0 - phase) * (intensity - 0.3)))
+
+# One tongue of fire: wide at `base`, narrowing to a point `height` along `up`, the tip swaying sideways
+func _draw_flame(base: Vector2, up: Vector2, height: float, width: float, sway: float, color: Color) -> void:
+	var side = Vector2(-up.y, up.x)
+	var left = PackedVector2Array()
+	var right = PackedVector2Array()
+	var steps = 8
+	for k in steps + 1:
+		var v = float(k) / steps
+		var half = width * 0.5 * pow(1.0 - v, 0.8) * (1.0 + 0.25 * sin(v * PI))
+		var mid = base + up * height * v + side * sway * v * v
+		left.append(mid - side * half)
+		right.append(mid + side * half)
+	right.reverse()
+	draw_colored_polygon(left + right, color)
+
 func _draw() -> void:
 	var center = size / 2.0
 	var s = minf(size.x, size.y)
 	var ring = s * RING_RATIO
 	var radius = s / 2.0 - ring
+	var fire = _fire_intensity()
+	if fire >= 0.0:
+		_draw_fire(center, radius, fire)
 	draw_circle(center, radius + ring / 2.0, Color(0, 0, 0, 0.35))
 	draw_arc(center, radius, 0.0, TAU, 64, Color(1, 1, 1, 0.12), ring, true)
 	if _fraction > 0.0:

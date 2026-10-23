@@ -1,10 +1,12 @@
 extends Control
 
-# Backpack bar between the board and the tray: a backpack icon and 5 slots for storing power-ups.
+# Backpack bar between the board and the tray: a backpack icon, 5 slots for storing power-ups and a trash can.
 # Drag a power-up from the tray onto a free slot to keep it, drag it from the slot onto the grid to use it later.
+# Any power-up (from the tray or a slot) can be dropped in the trash can to get rid of it for some points.
 # Slots past the first unlock for good once a game reaches GameConfig.backpack_unlock_scores.
 
 const BackpackSlot = preload("res://scenes/ui/backpack_slot.gd")
+const TrashCan = preload("res://scenes/ui/trash_can.gd")
 const FloatingText = preload("res://scenes/effects/floating_text.gd")
 const ICON: Texture2D = preload("res://assets/ui/backpack.png")  # made by tools/backpack_icons.py
 
@@ -15,6 +17,7 @@ const DROP_MARGIN_RATIO := 0.25  # how far outside a slot a drop still counts, r
 
 var _icon: TextureRect
 var _slots: Array = []
+var _trash: Control
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -29,6 +32,8 @@ func _ready() -> void:
 		var slot = BackpackSlot.new()
 		add_child(slot)
 		_slots.append(slot)
+	_trash = TrashCan.new()
+	add_child(_trash)
 
 	_refresh_locks()
 
@@ -61,6 +66,31 @@ func set_accepting(on: bool) -> void:
 func set_hover(hovered_slot: Control) -> void:
 	for slot in _slots:
 		slot.hovered = slot == hovered_slot
+
+# The trash can glows while any power-up is being dragged
+func set_trash_accepting(on: bool) -> void:
+	_trash.accepting = on
+	if not on:
+		_trash.hovered = false
+
+# Whether `global_point` is over the trash can. A tighter margin than the slots: slot 5's drop area reaches into it,
+# and the drag controller checks the trash can first, so this keeps the two apart.
+func trash_at(global_point: Vector2) -> bool:
+	return _trash.get_global_rect().grow(_trash.size.x * 0.12).has_point(global_point)
+
+func set_trash_hover(on: bool) -> void:
+	_trash.hovered = on
+
+# A power-up was dropped in the trash can: a gulp and its points floating up from it
+func trashed(points: int) -> void:
+	_trash.swallow()
+	var popup = FloatingText.new()
+	popup.text = "+%d" % points
+	popup.color = Color(1.0, 0.82, 0.3)
+	popup.font_size = 36
+	popup.position = _trash.position + Vector2(_trash.size.x / 2.0, 0)
+	add_child(popup)
+	popup.play()
 
 func has_items() -> bool:
 	return _slots.any(func(slot): return not slot.is_empty())
@@ -116,14 +146,15 @@ func restore(items: Array) -> void:
 
 # ---------------- Layout ----------------
 
-# Icon then the slots, all the same size, centered in the bar (smaller if the bar is too narrow for them)
+# Icon, the slots, then the trash can, all the same size, centered in the bar (smaller if the bar is too narrow)
 func _layout() -> void:
 	if size.y <= 0.0:
 		return
-	var fits_width = size.x * 0.94 / (SLOT_COUNT + 1 + GAP_RATIO * SLOT_COUNT)
+	var items = SLOT_COUNT + 2  # icon + slots + trash can
+	var fits_width = size.x * 0.94 / (items + GAP_RATIO * (items - 1))
 	var item = minf(size.y * ITEM_RATIO, fits_width)
 	var gap = item * GAP_RATIO
-	var total = item * (SLOT_COUNT + 1) + gap * SLOT_COUNT
+	var total = item * items + gap * (items - 1)
 	var x = (size.x - total) / 2.0
 	var y = (size.y - item) / 2.0
 
@@ -133,6 +164,9 @@ func _layout() -> void:
 		x += item + gap
 		slot.position = Vector2(x, y)
 		slot.size = Vector2(item, item)
+	x += item + gap
+	_trash.position = Vector2(x, y)
+	_trash.size = Vector2(item, item)
 
 func _drop_rect(slot: Control) -> Rect2:
 	return slot.get_global_rect().grow(slot.size.x * DROP_MARGIN_RATIO)

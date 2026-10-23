@@ -121,18 +121,24 @@ func _play_again() -> void:
 
 # ---------------- Game over ----------------
 
-# Game over when none of the pieces left in the tray fit anywhere and the backpack is empty
+# Game over when none of the shapes left in the tray fit anywhere and there's no power-up left, in the tray or the
+# backpack. A power-up never leaves the game stuck: even one with nowhere to go (a prism on an empty board) can be
+# dropped in the trash can, which uses up its tray slot.
 func _is_game_over() -> bool:
 	if backpack.has_items():
-		return false  # a stored power-up can always be used
+		return false
 	for piece in bottom_tray.get_pieces():
-		if not piece.shape_cells.is_empty() and _can_play(piece):
+		if piece.shape_cells.is_empty():
+			continue
+		if piece.powerup_name != "" or grid_manager.can_fit_anywhere(piece.shape_cells):
 			return false
 	return true
 
-# Power-ups always fit, shapes need a free spot on the board
+# Whether the piece can go on the board right now (shapes need a free spot, the prism needs a block)
 func _can_play(piece: Node2D) -> bool:
-	return piece.powerup_name != "" or grid_manager.can_fit_anywhere(piece.shape_cells)
+	if piece.powerup_name != "":
+		return grid_manager.can_place_powerup_anywhere(piece.powerup_name)
+	return grid_manager.can_fit_anywhere(piece.shape_cells)
 
 # Dims the tray pieces that don't fit anywhere right now
 func _update_playable() -> void:
@@ -179,7 +185,7 @@ func _restore(saved: Dictionary) -> void:
 	backpack.restore(saved.get("backpack", []))
 	grid_manager.set_score(int(saved.get("score", 0)))
 
-	var multiplier = int(saved.get("multiplier", 1))
+	var multiplier = mini(int(saved.get("multiplier", 1)), GameConfig.max_score_multiplier)
 	var time_left = float(saved.get("combo_time_left", 0.0))
 	if multiplier > 1 and time_left > 0.0:
 		GameConfig.current_score_multiplier = multiplier

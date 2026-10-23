@@ -46,6 +46,7 @@ power-ups (bomb, laser, prism, booster, hourglass).
 | `checkpoint-05-backpack` | Backpack bar with 3 power-up slots (slots 2 and 3 unlock for good at 250K and 750K), compact score numbers (75.3K, 1.25M), music paused when turned off, unused sound controls hidden |
 | `checkpoint-06-languages` | Language support: English, Brazilian Portuguese and Spanish, automatic from the phone's language with a Language option in Options |
 | `checkpoint-07-powerups` | Generic power-up system, new laser / prism / booster / rare hourglass (half-speed combo timer for 30s), smaller bomb (radius 2), 5 backpack slots unlocking at 35K / 100K / 250K / 500K (only from scores reached in a game), at most 1 power-up per tray batch, combo multiplier lasts 15s (was 5s) |
+| `checkpoint-08-multiplier-trash` | Score multiplier capped at x10, fire on the multiplier badge from x5 growing to x10, trash can at the end of the backpack bar (any power-up, from the tray or the backpack, for points by rarity), fix for getting stuck with a prism on an empty board and a full backpack |
 
 ## Project layout
 
@@ -70,7 +71,7 @@ tools/         asset generator scripts (ignored by Godot)
 
 | Name | Script | Role |
 |---|---|---|
-| `GameConfig` | `configs/game_config.gd` | Tuning values (points, bomb radius and fuse, booster amount, slow-time speed and length, backpack unlock scores) and run state (`current_score_multiplier`, `cell_size`) |
+| `GameConfig` | `configs/game_config.gd` | Tuning values (points, max multiplier and where the badge catches fire, bomb radius and fuse, booster amount, slow-time speed and length, backpack unlock scores) and run state (`current_score_multiplier`, `cell_size`) |
 | `ShapeDefinitions` | `configs/shape_definitions.gd` | Every piece shape (cell offsets) and every power-up's data (`POWERUPS`) |
 | `Settings` | `configs/settings.gd` | Player options and stats in `user://settings.cfg`, creates the `SFX` and `Music` audio buses, `vibrate()` |
 | `Sfx` | `managers/sfx.gd` | Sound effects synthesized in code at startup (no files), a pool of players on the SFX bus |
@@ -134,16 +135,22 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   (`scenes/ui/background.gd`).
 
 ### Gameplay flow
-- **Game over:** after every drop (`drag_controller.piece_dropped`), `main.gd` checks whether any tray piece fits
-  anywhere (`grid_manager.can_fit_anywhere`). Power-ups always fit, and anything in the backpack keeps the game going.
-  For a power-up it first waits for `grid_manager.powerup_finished`, because cells only free up once its animation is
-  done.
-- **The combo multiplier** goes up with each cleared line (`grid_manager.cleared_row_or_column`). It resets in
+- **Game over:** after every drop (`drag_controller.piece_dropped`), `main.gd` checks whether any tray shape fits
+  anywhere (`grid_manager.can_fit_anywhere`). Any power-up left, in the tray or the backpack, keeps the game going:
+  even one with nowhere to go on the board (a prism needs a block, so not on an empty board) can be dropped in the
+  trash can, which uses up its slot. That's what fixed getting stuck with only a prism in the tray, an empty board and
+  a full backpack. For a power-up it first waits for `grid_manager.powerup_finished`, because cells only free up once
+  its animation is done.
+- **The combo multiplier** goes up with each cleared line (`grid_manager.cleared_row_or_column`), and by
+  `booster_multiplier` with the booster, never past `GameConfig.max_score_multiplier` (10). It resets in
   `main.gd` on `timer_manager.combo_expired`; the HUD only displays it. Each cleared line restarts the combo timer at
   `TimerManager.combo_reset_time` (15 s). The combo timer is counted by hand in
   `timer_manager._process`, not with a `Timer` node, so it can run slower. It pauses with the tree.
 - **Line clears** free their cells immediately, then animate the tiles in a wave from where the piece landed.
-- **Pieces that don't fit** are dimmed after every move (`main._update_playable`).
+- **Pieces that don't fit** are dimmed after every move (`main._update_playable`), including a prism while the
+  board has no blocks (`grid_manager.can_place_powerup_anywhere`).
+- **The multiplier badge catches fire** (`combo_badge.gd`, drawn in code) from `GameConfig.fire_multiplier` (x5):
+  flames behind the badge, more and taller as the multiplier grows, burning hardest at x10, with embers from about x7.
 
 ### Saving
 - **Settings** (`user://settings.cfg`) are saved as soon as an option changes. They also hold `best_score` and
@@ -161,6 +168,11 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
 - While a tray power-up is dragged, free slots glow. Dropping on one (with some margin around it) stores the power-up
   and uses up the tray piece, like placing it. A stored power-up is dragged onto the grid the same way as from the
   tray, and returns to its slot if dropped elsewhere.
+- **Trash can** (`scenes/ui/trash_can.gd`) after the last slot: it glows while any power-up is dragged (from the tray
+  or a slot) and opens its lid when one is over it. Dropping there throws the power-up away for its
+  `"trash_score"` in `ShapeDefinitions.POWERUPS` (bomb 100, laser 150, prism and booster 200, hourglass 400, not
+  multiplied), via `grid_manager.add_score`. Its drop area is tighter than the slots' and checked first, because
+  slot 5's margin reaches into it.
 
 ### Audio
 - **Sound effects** are generated in code (`managers/sfx.gd`). The line-clear chime gets higher with the multiplier.
