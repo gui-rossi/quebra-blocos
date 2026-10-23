@@ -47,7 +47,7 @@ power-ups (bomb, laser, prism, booster, hourglass).
 | `checkpoint-06-languages` | Language support: English, Brazilian Portuguese and Spanish, automatic from the phone's language with a Language option in Options |
 | `checkpoint-07-powerups` | Generic power-up system, new laser / prism / booster / rare hourglass (half-speed combo timer for 30s), smaller bomb (radius 2), 5 backpack slots unlocking at 35K / 100K / 250K / 500K (only from scores reached in a game), at most 1 power-up per tray batch, combo multiplier lasts 15s (was 5s) |
 | `checkpoint-08-multiplier-trash` | Score multiplier capped at x10, a small fire on the multiplier number from x5 growing to x10 (inside the timer ring), a crown next to the best score, trash can at the end of the backpack bar (any power-up, from the tray or the backpack, for points by rarity), fix for getting stuck with a prism on an empty board and a full backpack |
-| `checkpoint-09-refining-sprites` | Power-up sprites (bomb, laser, prism, booster, hourglass) and the trash can redone in the backpack's art style (thick dark outline, soft 3D shading, cast and ground shadows), from `tools/powerup_sprites.py` |
+| `checkpoint-09-refining-sprites` | Power-up sprites (bomb, laser, prism, booster, hourglass) and the trash can redone in the backpack's art style (thick dark outline, soft 3D shading, cast and ground shadows), from `tools/powerup_sprites.py`; broken blocks' fragments fall for a moment, then fly into the score |
 
 ## Project layout
 
@@ -151,6 +151,11 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   `TimerManager.combo_reset_time` (15 s). The combo timer is counted by hand in
   `timer_manager._process`, not with a `Timer` node, so it can run slower. It pauses with the tree.
 - **Line clears** free their cells immediately, then animate the tiles in a wave from where the piece landed.
+- **Broken blocks fly into the score** (`scenes/effects/score_fragments.gd`): each broken tile (line clears and
+  power-ups) bursts into a few fragments that fall for a moment, then curve up and converge into the score number,
+  shrinking and brightening on the way. `grid_manager.score_target` (set by `main.gd` to
+  `top_tray.get_score_global_center`) says where to fly; without it, the old falling burst (`block_burst.gd`) is used.
+  That burst is still used for the soft puff when a piece is placed.
 - **Pieces that don't fit** are dimmed after every move (`main._update_playable`), including a prism while the
   board has no blocks (`grid_manager.can_place_powerup_anywhere`).
 - **The multiplier number catches fire** (`combo_badge.gd`, drawn in code) from `GameConfig.fire_multiplier` (x5):

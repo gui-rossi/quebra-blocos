@@ -38,6 +38,7 @@ func _ready() -> void:
 	$CanvasLayer.add_child(backpack)
 	drag_controller.backpack = backpack
 	grid_manager.score_changed.connect(backpack.update_unlocks)
+	grid_manager.score_target = top_tray.get_score_global_center
 
 	top_tray.settings_pressed.connect(_open_pause)
 	top_tray.set_best(Settings.best_score)

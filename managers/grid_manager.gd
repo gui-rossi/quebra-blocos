@@ -7,6 +7,7 @@ signal slow_time_used()  # the hourglass was dropped (main.gd slows the combo ti
 signal powerup_finished()  # a power-up's effect is done and the cells it cleared are free
 
 var score: int = 0
+var score_target: Callable  # returns the score number's global position; broken blocks' fragments fly there
 
 @export var MAX_COLUMNS: = 10
 @export var MAX_ROWS: = 12
@@ -17,6 +18,7 @@ const BLOCK_SPACE_SCENE: PackedScene = preload("res://scenes/blocks/block_space.
 const ExplosionEffect = preload("res://scenes/powerups/explosion_effect.gd")
 const EXPLOSION_SOUND: AudioStream = preload("res://scenes/powerups/bomb_explosion.wav")
 const BlockBurst = preload("res://scenes/effects/block_burst.gd")
+const ScoreFragments = preload("res://scenes/effects/score_fragments.gd")
 const FloatingText = preload("res://scenes/effects/floating_text.gd")
 const Palette = preload("res://configs/palette.gd")
 const NumberFormat = preload("res://configs/number_format.gd")
@@ -395,7 +397,7 @@ func _animate_tile_destroyed(tile: Node2D, delay: float) -> void:
 
 	var tween = tile.create_tween()
 	tween.tween_interval(delay)
-	tween.tween_callback(_spawn_burst.bind(tile_center, color, 14, 1.0))
+	tween.tween_callback(_spawn_break.bind(tile_center, color))
 	tween.tween_property(tile, "modulate", Color(1.6, 1.6, 1.6), 0.06)  # flashes bright before breaking
 	tween.parallel().tween_property(control, "scale", Vector2(1.2, 1.2), 0.06)
 	tween.tween_property(control, "scale", Vector2.ZERO, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
@@ -421,6 +423,20 @@ func _animate_tile_placed(tile: Node2D, delay: float) -> void:
 	tween.tween_property(control, "scale", Vector2(0.94, 0.94), 0.07).set_ease(Tween.EASE_IN)
 	tween.parallel().tween_property(tile, "modulate", Color.WHITE, 0.18)
 	tween.tween_property(control, "scale", Vector2.ONE, 0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+# A broken block's fragments: they fall for a moment, then fly into the score number (score_target, set by main.gd).
+# Falls back to a plain burst if there's nowhere to fly to.
+func _spawn_break(local_position: Vector2, color: Color) -> void:
+	if not score_target.is_valid():
+		_spawn_burst(local_position, color, 14, 1.0)
+		return
+	var fragments = ScoreFragments.new()
+	fragments.position = local_position
+	fragments.color = color
+	fragments.size = cell_size
+	fragments.target = score_target.call()
+	add_child(fragments)
+	fragments.play()
 
 func _spawn_burst(local_position: Vector2, color: Color, amount: int, speed: float) -> void:
 	var burst = BlockBurst.new()

@@ -100,6 +100,10 @@ func set_score(new_score: int) -> void:
 	if gained:
 		_punch_score()
 
+# Where the score number is on screen (broken blocks' fragments fly here)
+func get_score_global_center() -> Vector2:
+	return _score_label.get_global_rect().get_center()
+
 func set_best(best: int) -> void:
 	_best_value = best
 	_best_label.text = tr("HUD_BEST") % NumberFormat.compact(best)
