@@ -131,15 +131,15 @@ func _flame_pieces(with_flicks: bool) -> Array:
 	pieces.append(_circle_points(Vector2(0, 0.2), 0.3, 24))  # round base
 	# main tongue: up the left side to the tip, leaning a little left, and back down the right side
 	var tongue = _bezier(Vector2(-0.3, 0.2), Vector2(-0.33, -0.16), Vector2(-0.06, -0.5), 10)
-	tongue.append_array(_bezier(Vector2(-0.06, -0.5), Vector2(0.26, -0.22), Vector2(0.3, 0.2), 10))
+	tongue.append_array(_bezier(Vector2(-0.06, -0.5), Vector2(0.26, -0.22), Vector2(0.3, 0.2), 10).slice(1))  # skip the shared joining point
 	pieces.append(tongue)
 	if with_flicks:
 		# a curved flick on the upper right, and a smaller one on the left
 		var right = _bezier(Vector2(0.06, -0.06), Vector2(0.19, -0.18), Vector2(0.23, -0.37), 8)
-		right.append_array(_bezier(Vector2(0.23, -0.37), Vector2(0.34, -0.18), Vector2(0.31, 0.1), 8))
+		right.append_array(_bezier(Vector2(0.23, -0.37), Vector2(0.34, -0.18), Vector2(0.31, 0.1), 8).slice(1))  # skip the shared joining point
 		pieces.append(right)
 		var left = _bezier(Vector2(-0.17, 0.12), Vector2(-0.25, -0.02), Vector2(-0.32, -0.19), 8)
-		left.append_array(_bezier(Vector2(-0.32, -0.19), Vector2(-0.37, 0.0), Vector2(-0.3, 0.18), 8))
+		left.append_array(_bezier(Vector2(-0.32, -0.19), Vector2(-0.37, 0.0), Vector2(-0.3, 0.18), 8).slice(1))  # skip the shared joining point
 		pieces.append(left)
 	return pieces
 
