@@ -47,6 +47,7 @@ power-ups (bomb, laser, prism, booster, hourglass).
 | `checkpoint-06-languages` | Language support: English, Brazilian Portuguese and Spanish, automatic from the phone's language with a Language option in Options |
 | `checkpoint-07-powerups` | Generic power-up system, new laser / prism / booster / rare hourglass (half-speed combo timer for 30s), smaller bomb (radius 2), 5 backpack slots unlocking at 35K / 100K / 250K / 500K (only from scores reached in a game), at most 1 power-up per tray batch, combo multiplier lasts 15s (was 5s) |
 | `checkpoint-08-multiplier-trash` | Score multiplier capped at x10, a small fire on the multiplier number from x5 growing to x10 (inside the timer ring), a crown next to the best score, trash can at the end of the backpack bar (any power-up, from the tray or the backpack, for points by rarity), fix for getting stuck with a prism on an empty board and a full backpack |
+| `checkpoint-09-refining-sprites` | Power-up sprites (bomb, laser, prism, booster, hourglass) and the trash can redone in the backpack's art style (thick dark outline, soft 3D shading, cast and ground shadows), from `tools/powerup_sprites.py` |
 
 ## Project layout
 
@@ -62,6 +63,7 @@ scenes/
   ui/              menus, HUD widgets, backpack, shared UI styling
 assets/music/  public-domain music tracks + CREDITS.md (source and license of each)
 assets/ui/     UI sprites (backpack icon)
+assets/powerups/ power-up and trash can sprites (tools/powerup_sprites.py)
 assets/icon/   app icon: icon.png (512, project + Play Store), adaptive icon foreground and background (432)
 localization/  strings.csv with every visible text in each language
 tools/         asset generator scripts (ignored by Godot)
@@ -108,8 +110,10 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
     left is saved with the run.
 - **The visuals:** each power-up's `visual` in `POWERUPS` is a scene or script with `fit_to(diameter)`,
   `start_idle()` and `activate(target)` (fly to the target, play a flair, free itself). The grid applies the effect
-  after `activate` ends. The bomb is a scene, and the others extend `scenes/powerups/powerup_visual.gd` and draw
-  themselves. Pieces get theirs from `ShapeDefinitions.make_powerup_visual()`.
+  after `activate` ends. The bomb is a scene (sprite `bomb_body.png` with a `Line2D` fuse and an outline `Line2D`
+  under it), and the others extend `scenes/powerups/powerup_visual.gd`, which draws their sprite (`sprite`) over a
+  soft halo (`halo_color`) that breathes while idle; subclasses only add extras (the booster's "+2") and their flair.
+  Pieces get theirs from `ShapeDefinitions.make_powerup_visual()`.
 - **Adding a power-up:** an entry in `POWERUPS`, a visual, and a case in `get_powerup_area`, `can_place_powerup` and
   `activate_powerup`.
 - **Spawning:** one roll per tray slot against the sum of all `spawn_chance` values, then a pick weighted by chance
@@ -230,6 +234,13 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   that were tried (`b` to `b4`). Run `python3 tools/backpack_icons.py assets/ui b5` and rename
   `backpack_option_b5.png` to `backpack.png` to rebuild it. `tools/` has a `.gdignore`, so Godot
   skips it.
+- **Power-up and trash can sprites** (`assets/powerups/*.png`, plus `scenes/powerups/bomb_body.png`) are made by
+  `tools/powerup_sprites.py` in the same art style as the backpack: it imports `backpack_icons.py` and uses its
+  pillow shading (`lit_shade`), the same outline colour and thickness, cast shadows and a ground shadow. Run
+  `python3 tools/powerup_sprites.py assets/powerups` (and `... scenes/powerups bomb_body` for the bomb), or
+  `--preview <dir>` for all of them side by side. Layout facts the code relies on: the bomb body is centred at
+  (99, 121) of its 198px texture with a 98px diameter (the fuse path in `powerup_bomb.gd` starts at its cap), and the
+  trash lid's hinge is at (0.86, 0.5) of its texture, placed at (0.86, 0.3) of the bin's (`trash_can.gd`).
 - **The app icon** is `assets/icon/icon.png` (`config/icon` in `project.godot`), drawn by `tools/app_icon.py`: variant
   `j2`, a 4x4 board with a cyan L piece dropping into its gap and the b5 backpack releasing a bomb, a star and the
   diamond. It reuses `backpack_icons.py` (imported) and draws the blocks the same way as `block_visual.gd`. The script

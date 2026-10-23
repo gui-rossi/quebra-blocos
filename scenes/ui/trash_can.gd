@@ -7,9 +7,14 @@ extends Control
 const Palette = preload("res://configs/palette.gd")
 
 const GLOW := Color(1.0, 0.82, 0.3)  # same as the backpack slots
-const METAL := Color(0.62, 0.68, 0.82)
-const METAL_DARK := Color(0.36, 0.41, 0.56)
-const INK := Color(0.04, 0.05, 0.13, 0.85)
+
+# Same art style as the backpack (tools/powerup_sprites.py). Both textures share one space: the lid's hinge is at
+# LID_HINGE in its own texture and goes on LID_SPOT of the bin's texture.
+const BODY: Texture2D = preload("res://assets/powerups/trash_body.png")
+const LID: Texture2D = preload("res://assets/powerups/trash_lid.png")
+const LID_HINGE := Vector2(0.86, 0.5)
+const LID_SPOT := Vector2(0.86, 0.3)
+const ART_RATIO := 1.0  # texture size relative to the tile
 
 # true while a power-up is being dragged
 var accepting: bool = false:
@@ -68,50 +73,14 @@ func _draw() -> void:
 		tile.border_color = Color(1, 1, 1, 0.14)
 	draw_style_box(tile, Rect2(Vector2.ZERO, size))
 
-	var c = size / 2.0
-	var u = s * 0.1  # one unit of the drawing
-	var alpha = 1.0 if accepting or hovered else 0.7
-
-	# bin body: slightly narrower at the bottom, with three grooves
-	var top_w = u * 3.4
-	var bottom_w = u * 2.7
-	var body_top = c.y - u * 1.2
-	var body_bottom = c.y + u * 2.7
-	var body = PackedVector2Array([
-		Vector2(c.x - top_w / 2.0, body_top), Vector2(c.x + top_w / 2.0, body_top),
-		Vector2(c.x + bottom_w / 2.0, body_bottom), Vector2(c.x - bottom_w / 2.0, body_bottom),
-	])
-	draw_colored_polygon(_grow(body, u * 0.28), Color(INK, INK.a * alpha))
-	draw_colored_polygon(body, Color(METAL_DARK, alpha))
-	var face = PackedVector2Array([body[0] + Vector2(u * 0.2, 0), body[1] - Vector2(u * 0.9, 0), body[2] - Vector2(u * 0.75, 0), body[3] + Vector2(u * 0.15, 0)])
-	draw_colored_polygon(face, Color(METAL, alpha))
-	for i in [-1, 0, 1]:
-		var x = c.x + i * u * 0.85
-		draw_line(Vector2(x, body_top + u * 0.6), Vector2(x * 0.98 + c.x * 0.02, body_bottom - u * 0.5), Color(METAL_DARK.darkened(0.2), alpha), maxf(1.5, u * 0.3), true)
+	# the bin, faded a little while nothing is being dragged
+	var side = s * ART_RATIO
+	var origin = (size - Vector2(side, side)) / 2.0
+	var tint = Color(1, 1, 1, 1.0 if accepting or hovered else 0.75)
+	draw_texture_rect(BODY, Rect2(origin, Vector2(side, side)), false, tint)
 
 	# lid, hinged on its right end: it swings up when a power-up hovers over the bin
-	var hinge = Vector2(c.x + top_w / 2.0 + u * 0.2, body_top - u * 0.35)
-	var angle = lerpf(0.75, 0.0, _lid)  # positive turns clockwise on screen: the free left end goes up
-	var lid_w = top_w + u * 0.8
-	var lid_h = u * 0.6
-	var lid = PackedVector2Array([Vector2(-lid_w, -lid_h / 2.0), Vector2(0, -lid_h / 2.0), Vector2(0, lid_h / 2.0), Vector2(-lid_w, lid_h / 2.0)])
-	var handle = PackedVector2Array([Vector2(-lid_w * 0.62, -lid_h / 2.0), Vector2(-lid_w * 0.38, -lid_h / 2.0), Vector2(-lid_w * 0.38, -lid_h / 2.0 - u * 0.55), Vector2(-lid_w * 0.62, -lid_h / 2.0 - u * 0.55)])
-	draw_set_transform(hinge, angle, Vector2.ONE)
-	draw_colored_polygon(_grow(handle, u * 0.22), Color(INK, INK.a * alpha))
-	draw_colored_polygon(_grow(lid, u * 0.28), Color(INK, INK.a * alpha))
-	draw_colored_polygon(handle, Color(METAL_DARK, alpha))
-	draw_colored_polygon(lid, Color(METAL.lightened(0.15), alpha))
+	var angle = lerpf(0.55, 0.0, _lid)  # positive turns clockwise on screen: the free left end goes up
+	draw_set_transform(origin + LID_SPOT * side, angle, Vector2.ONE)
+	draw_texture_rect(LID, Rect2(-LID_HINGE * side, Vector2(side, side)), false, tint)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-
-# The polygon pushed out by `amount` from its centre (for outlines)
-func _grow(points: PackedVector2Array, amount: float) -> PackedVector2Array:
-	var center = Vector2.ZERO
-	for p in points:
-		center += p
-	center /= points.size()
-	var grown = PackedVector2Array()
-	for p in points:
-		var dir = p - center
-		var scale_by = (dir.length() + amount) / maxf(dir.length(), 0.001)
-		grown.append(center + dir * scale_by)
-	return grown

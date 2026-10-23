@@ -12,6 +12,7 @@ const FUSE_PATH = [
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var fuse: Line2D = $Sprite2D/Fuse
+@onready var fuse_outline: Line2D = $Sprite2D/FuseOutline  # the dark outline around the fuse, like the sprites have
 @onready var spark: Node2D = $Sprite2D/Spark
 
 var diameter: float = BODY_DIAMETER_PX  # current body diameter, in local units
@@ -84,6 +85,7 @@ func _set_fuse_remaining(fraction: float) -> void:
 		points.append(tip)
 
 	fuse.points = points
+	fuse_outline.points = points
 	spark.position = tip
 
 # `progress` 0 -> 1 over the fuse time: pulses get faster and the body turns red
