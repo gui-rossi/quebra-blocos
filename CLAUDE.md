@@ -150,9 +150,11 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
 - **Pieces that don't fit** are dimmed after every move (`main._update_playable`), including a prism while the
   board has no blocks (`grid_manager.can_place_powerup_anywhere`).
 - **The multiplier number catches fire** (`combo_badge.gd`, drawn in code) from `GameConfig.fire_multiplier` (x5):
-  a small fire behind the "x5" (a warm glow and 3 to 5 flame tongues rising from under the digits), brighter, wider
-  and taller up to x10. It's drawn on top of the dark disc but under the timer ring and the number, and its tips stay
-  inside the ring's inner edge, so the combo timer is never covered.
+  one stylized flame behind the "x5" (a round base, a tall tongue leaning right and two small side flicks, in three
+  layers: orange, light orange and a yellow core), gently flickering and a bit bigger up to x10. While it burns, the
+  number is a cool white (`FIRE_TEXT`) with a thick dark outline so it stands out from the fire. It's drawn on top of
+  the dark disc but under the timer ring and the number, and stays inside the ring's inner edge, so the combo timer
+  is never covered.
 - **A crown next to the best score** (`scenes/ui/crown_icon.gd`, drawn in code): gold, three points with balls on
   top and gems on the band, sized from the best label's font (`top_tray.BEST_FONT_SIZE`). It sits left of the label
   in an `HBoxContainer` in the score `VBoxContainer`, so the pair stays centred under the score.

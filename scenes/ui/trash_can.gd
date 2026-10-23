@@ -91,7 +91,7 @@ func _draw() -> void:
 
 	# lid, hinged on its right end: it swings up when a power-up hovers over the bin
 	var hinge = Vector2(c.x + top_w / 2.0 + u * 0.2, body_top - u * 0.35)
-	var angle = lerpf(-0.75, 0.0, _lid)
+	var angle = lerpf(0.75, 0.0, _lid)  # positive turns clockwise on screen: the free left end goes up
 	var lid_w = top_w + u * 0.8
 	var lid_h = u * 0.6
 	var lid = PackedVector2Array([Vector2(-lid_w, -lid_h / 2.0), Vector2(0, -lid_h / 2.0), Vector2(0, lid_h / 2.0), Vector2(-lid_w, lid_h / 2.0)])
