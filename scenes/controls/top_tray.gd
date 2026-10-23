@@ -7,10 +7,12 @@ signal settings_pressed
 
 const GearButton = preload("res://scenes/ui/gear_button.gd")
 const ComboBadge = preload("res://scenes/ui/combo_badge.gd")
+const CrownIcon = preload("res://scenes/ui/crown_icon.gd")
 const NumberFormat = preload("res://configs/number_format.gd")
 
 const HUD_ITEM_RATIO := 0.78  # gear and badge size, relative to the tray's height
 const HUD_ITEM_MAX := 100.0
+const BEST_FONT_SIZE := 22
 const SIDE_MARGIN := 20.0  # used until main.gd lines the sides up with the board
 
 const COMBO_SOUND_COOLDOWN_MS := 150  # two lines cleared at once bump the multiplier twice, play the sound once
@@ -39,9 +41,20 @@ func _ready() -> void:
 	score_box.add_theme_constant_override("separation", -8)
 	score_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_score_label = _make_label("0", 60, Color.WHITE, 10)
-	_best_label = _make_label("", 22, Color(1, 1, 1, 0.65), 4)
+	_best_label = _make_label("", BEST_FONT_SIZE, Color(1, 1, 1, 0.65), 4)
 	score_box.add_child(_score_label)
-	score_box.add_child(_best_label)
+
+	# a small crown to the left of the best score, so the record reads at a glance in any language
+	var best_row = HBoxContainer.new()
+	best_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	best_row.add_theme_constant_override("separation", 6)
+	best_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var crown = CrownIcon.new()
+	crown.custom_minimum_size = Vector2(BEST_FONT_SIZE * 1.25, BEST_FONT_SIZE * 1.0)
+	crown.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	best_row.add_child(crown)
+	best_row.add_child(_best_label)
+	score_box.add_child(best_row)
 	control.add_child(score_box)
 	score_box.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
 	score_box.grow_horizontal = Control.GROW_DIRECTION_BOTH  # stays centered as the number gets wider

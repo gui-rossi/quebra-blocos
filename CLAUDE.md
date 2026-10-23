@@ -46,7 +46,7 @@ power-ups (bomb, laser, prism, booster, hourglass).
 | `checkpoint-05-backpack` | Backpack bar with 3 power-up slots (slots 2 and 3 unlock for good at 250K and 750K), compact score numbers (75.3K, 1.25M), music paused when turned off, unused sound controls hidden |
 | `checkpoint-06-languages` | Language support: English, Brazilian Portuguese and Spanish, automatic from the phone's language with a Language option in Options |
 | `checkpoint-07-powerups` | Generic power-up system, new laser / prism / booster / rare hourglass (half-speed combo timer for 30s), smaller bomb (radius 2), 5 backpack slots unlocking at 35K / 100K / 250K / 500K (only from scores reached in a game), at most 1 power-up per tray batch, combo multiplier lasts 15s (was 5s) |
-| `checkpoint-08-multiplier-trash` | Score multiplier capped at x10, fire on the multiplier badge from x5 growing to x10, trash can at the end of the backpack bar (any power-up, from the tray or the backpack, for points by rarity), fix for getting stuck with a prism on an empty board and a full backpack |
+| `checkpoint-08-multiplier-trash` | Score multiplier capped at x10, a small fire on the multiplier number from x5 growing to x10 (inside the timer ring), a crown next to the best score, trash can at the end of the backpack bar (any power-up, from the tray or the backpack, for points by rarity), fix for getting stuck with a prism on an empty board and a full backpack |
 
 ## Project layout
 
@@ -149,8 +149,13 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
 - **Line clears** free their cells immediately, then animate the tiles in a wave from where the piece landed.
 - **Pieces that don't fit** are dimmed after every move (`main._update_playable`), including a prism while the
   board has no blocks (`grid_manager.can_place_powerup_anywhere`).
-- **The multiplier badge catches fire** (`combo_badge.gd`, drawn in code) from `GameConfig.fire_multiplier` (x5):
-  flames behind the badge, more and taller as the multiplier grows, burning hardest at x10, with embers from about x7.
+- **The multiplier number catches fire** (`combo_badge.gd`, drawn in code) from `GameConfig.fire_multiplier` (x5):
+  a small fire behind the "x5" (a warm glow and 3 to 5 flame tongues rising from under the digits), brighter, wider
+  and taller up to x10. It's drawn on top of the dark disc but under the timer ring and the number, and its tips stay
+  inside the ring's inner edge, so the combo timer is never covered.
+- **A crown next to the best score** (`scenes/ui/crown_icon.gd`, drawn in code): gold, three points with balls on
+  top and gems on the band, sized from the best label's font (`top_tray.BEST_FONT_SIZE`). It sits left of the label
+  in an `HBoxContainer` in the score `VBoxContainer`, so the pair stays centred under the score.
 
 ### Saving
 - **Settings** (`user://settings.cfg`) are saved as soon as an option changes. They also hold `best_score` and
@@ -278,18 +283,6 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   useful, e.g. how it lined blocks and the backpack up on the text's baseline.
 - **Keep in mind:** it should still read well at phone size, keep the same colors as the app icon (yellow letters,
   cyan L piece, brown backpack), and the intro shouldn't delay the menu buttons; they can be usable right away.
-
-### Crown next to the best score
-- **A small gold crown icon** to the left of the best score in the top tray (`top_tray.gd`, the "BEST 12K" label
-  under the score), so the record reads at a glance in any language.
-- **Draw it in code**, like the other HUD icons (a Control with `_draw`): a 3-point crown with a dark outline, gold
-  fill with top-left lighting, and small gems on the points. It's sized from the label's font height so it scales
-  with it.
-- **Layout:** put the crown and the label in an `HBoxContainer` that replaces the plain best-score label in the score
-  `VBoxContainer`, so the pair stays centred under the score. The translated "BEST" / "RECORDE" / "RÉCORD" text stays
-  next to it.
-- **Optional:** the same crown on the main menu's and game over's best score, and a short shine on the crown when a
-  new best is reached during a game.
 
 ### Blocks worth more as the game goes on
 - **Idea:** make every block increasingly valuable as a game progresses, so long runs feel rewarding and scores keep
