@@ -128,15 +128,19 @@ func _draw_fire(center: Vector2, inner: float, intensity: float) -> void:
 # The flame's parts in unit coordinates (1 tall, bottom at y = 0.5), drawn in the same color so they read as one shape
 func _flame_pieces(with_flicks: bool) -> Array:
 	var pieces = []
-	pieces.append(_circle_points(Vector2(0, 0.2), 0.3, 20))  # round base
-	# main tongue: up the left side to the tip, slightly right of centre, and back down the right side
-	var tongue = _bezier(Vector2(-0.3, 0.2), Vector2(-0.3, -0.18), Vector2(0.05, -0.5), 10)
-	tongue.append_array(_bezier(Vector2(0.05, -0.5), Vector2(0.33, -0.12), Vector2(0.3, 0.2), 10))
+	pieces.append(_circle_points(Vector2(0, 0.2), 0.3, 24))  # round base
+	# main tongue: up the left side to the tip, leaning a little left, and back down the right side
+	var tongue = _bezier(Vector2(-0.3, 0.2), Vector2(-0.33, -0.16), Vector2(-0.06, -0.5), 10)
+	tongue.append_array(_bezier(Vector2(-0.06, -0.5), Vector2(0.26, -0.22), Vector2(0.3, 0.2), 10))
 	pieces.append(tongue)
 	if with_flicks:
-		# a small flick on the upper right and one on the left
-		pieces.append(PackedVector2Array([Vector2(0.13, -0.08), Vector2(0.21, -0.2), Vector2(0.25, -0.31), Vector2(0.3, -0.13), Vector2(0.3, 0.06)]))
-		pieces.append(PackedVector2Array([Vector2(-0.29, 0.16), Vector2(-0.33, 0.0), Vector2(-0.3, -0.1), Vector2(-0.22, -0.01), Vector2(-0.18, 0.12)]))
+		# a curved flick on the upper right, and a smaller one on the left
+		var right = _bezier(Vector2(0.06, -0.06), Vector2(0.19, -0.18), Vector2(0.23, -0.37), 8)
+		right.append_array(_bezier(Vector2(0.23, -0.37), Vector2(0.34, -0.18), Vector2(0.31, 0.1), 8))
+		pieces.append(right)
+		var left = _bezier(Vector2(-0.17, 0.12), Vector2(-0.25, -0.02), Vector2(-0.32, -0.19), 8)
+		left.append_array(_bezier(Vector2(-0.32, -0.19), Vector2(-0.37, 0.0), Vector2(-0.3, 0.18), 8))
+		pieces.append(left)
 	return pieces
 
 func _circle_points(c: Vector2, r: float, steps: int) -> PackedVector2Array:
