@@ -13,6 +13,7 @@ const SPRITE_CONTENT_RATIO := 0.8
 
 var sprite: Texture2D = null
 var halo_color: Color = Color(1, 1, 1)
+var mega: bool = false  # the mega version (set by ShapeDefinitions.make_powerup_visual, which also adds its aura)
 
 var diameter: float = 64.0  # current body diameter, in local units
 var glow: float = 0.0:  # 0..1, animated while idle

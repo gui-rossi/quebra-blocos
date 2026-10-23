@@ -63,6 +63,17 @@ func set_accepting(on: bool) -> void:
 		if not on:
 			slot.hovered = false
 
+# A slot holding `key` under `global_point` (not `excluded`, the slot being dragged out of), or null
+func slot_with_at(key: String, global_point: Vector2, excluded: Control) -> Control:
+	var slot = filled_slot_at(global_point)
+	return slot if slot != null and slot != excluded and slot.powerup_name == key else null
+
+# Slots holding `key` glow while the same power-up is dragged, it can be merged into them (set_accepting(false) clears it)
+func set_merge_ready(key: String, excluded: Control) -> void:
+	for slot in _slots:
+		if slot != excluded and not slot.locked and slot.powerup_name == key:
+			slot.accepting = true
+
 func set_hover(hovered_slot: Control) -> void:
 	for slot in _slots:
 		slot.hovered = slot == hovered_slot

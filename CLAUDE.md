@@ -48,6 +48,7 @@ power-ups (bomb, laser, prism, booster, hourglass).
 | `checkpoint-07-powerups` | Generic power-up system, new laser / prism / booster / rare hourglass (half-speed combo timer for 30s), smaller bomb (radius 2), 5 backpack slots unlocking at 35K / 100K / 250K / 500K (only from scores reached in a game), at most 1 power-up per tray batch, combo multiplier lasts 15s (was 5s) |
 | `checkpoint-08-multiplier-trash` | Score multiplier capped at x10, a small fire on the multiplier number from x5 growing to x10 (inside the timer ring), a crown next to the best score, trash can at the end of the backpack bar (any power-up, from the tray or the backpack, for points by rarity), fix for getting stuck with a prism on an empty board and a full backpack |
 | `checkpoint-09-refining-sprites` | Power-up sprites (bomb, laser, prism, booster, hourglass) and the trash can redone in the backpack's art style (thick dark outline, soft 3D shading, cast and ground shadows), from `tools/powerup_sprites.py`; broken blocks' fragments fall for a moment, then fly into the score |
+| `checkpoint-10-stronger-powerups` | Mega power-ups: dragging a power-up onto another of the same type (tray or backpack, either way) merges them into its mega version (bigger bomb, 3-wide laser, two-color prism, +5 booster, hourglass that stops the combo timer), the destroying ones score x3, golden aura and star badge |
 
 ## Project layout
 
@@ -106,8 +107,8 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   - **booster:** goes anywhere, raises the multiplier by `GameConfig.booster_multiplier` and refills the combo timer.
   - **hourglass (rare, 1.5%):** goes anywhere. For `GameConfig.slow_time_duration` (30) real seconds the combo timer
     runs at `GameConfig.slow_time_factor` (0.5, half speed), and the badge's ring turns icy blue. The grid emits
-    `slow_time_used` and `main.gd` calls `timer_manager.slow_down()`. Using another one restarts the 30s. The time
-    left is saved with the run.
+    `slow_time_used(duration, factor)` and `main.gd` calls `timer_manager.slow_down()`. Using another one while
+    one is on keeps the longer time left and the stronger factor. The time left and the factor are saved with the run.
 - **The visuals:** each power-up's `visual` in `POWERUPS` is a scene or script with `fit_to(diameter)`,
   `start_idle()` and `activate(target)` (fly to the target, play a flair, free itself). The grid applies the effect
   after `activate` ends. The bomb is a scene (sprite `bomb_body.png` with a `Line2D` fuse and an outline `Line2D`
@@ -115,7 +116,27 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   soft halo (`halo_color`) that breathes while idle; subclasses only add extras (the booster's "+2") and their flair.
   Pieces get theirs from `ShapeDefinitions.make_powerup_visual()`.
 - **Adding a power-up:** an entry in `POWERUPS`, a visual, and a case in `get_powerup_area`, `can_place_powerup` and
-  `activate_powerup`.
+  `activate_powerup`, plus its mega version (below).
+- **Mega power-ups (merging):** each base power-up has `"merges_into": "mega_<key>"`. Its mega entry in `POWERUPS`
+  has `"effect": "<key>"`, `"mega": true` and `spawn_chance` 0, so it only comes from merging and doesn't merge again.
+  The grid matches on `ShapeDefinitions.get_effect(key)` and reads `is_mega(key)` for the stronger numbers in
+  `GameConfig.mega_*`:
+  - **mega bomb:** radius 4 (9×9 with rounded corners).
+  - **mega laser:** 3 rows and 3 columns, centered on the target.
+  - **mega prism:** the target's color plus the most common other color on the board.
+  - **mega booster:** +5 to the multiplier (still capped at x10).
+  - **mega hourglass:** the combo timer stops (factor 0) for 30s.
+  - Blocks broken by a mega bomb, laser or prism score `GameConfig.mega_score_bonus` (3) times more, with a
+    "Mega x3!" popup. Mega trash scores are 3× the base ones.
+  - **Merging** is in `drag_controller.gd` ("Merging" section). It's checked after the trash can and before
+    storing in the backpack: the dragged power-up dropped on a tray piece or a backpack slot holding the same key
+    (`_merge_target_at`) is used up, and the target becomes the mega version (`randomized_block.upgrade_powerup()`
+    or `backpack_slot.store()`). Possible targets pulse with a gold ring (`merge_ready` on tray pieces,
+    `backpack.set_merge_ready`) and light up when hovered.
+  - **Look:** `make_powerup_visual()` sets `mega` on the visual (the booster then shows "+5") and adds two
+    `scenes/powerups/mega_aura.gd` children: a pulsing gold glow with circling sparkles behind it, and a gold star
+    badge in front. They size themselves from the visual's `diameter`, so they work for the bomb scene too. There
+    are no separate mega sprites yet.
 - **Spawning:** one roll per tray slot against the sum of all `spawn_chance` values, then a pick weighted by chance
   (`roll_powerup_name`). **At most 1 power-up per batch of 3:** `bottom_tray._roll_batch()` rolls the slots in a
   random order, and once one gets a power-up the others can only get shapes.
@@ -188,11 +209,12 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   new players always start with 1 open slot.
 - While a tray power-up is dragged, free slots glow. Dropping on one (with some margin around it) stores the power-up
   and uses up the tray piece, like placing it. A stored power-up is dragged onto the grid the same way as from the
-  tray, and returns to its slot if dropped elsewhere.
+  tray, and returns to its slot if dropped elsewhere. A power-up dropped on a slot holding the same one merges into
+  its mega version there (see "Mega power-ups").
 - **Trash can** (`scenes/ui/trash_can.gd`) after the last slot: it glows while any power-up is dragged (from the tray
   or a slot) and opens its lid when one is over it. Dropping there throws the power-up away for its
-  `"trash_score"` in `ShapeDefinitions.POWERUPS` (bomb 100, laser 150, prism and booster 200, hourglass 400, not
-  multiplied), via `grid_manager.add_score`. Its drop area is tighter than the slots' and checked first, because
+  `"trash_score"` in `ShapeDefinitions.POWERUPS` (bomb 100, laser 150, prism and booster 200, hourglass 400, 3× that
+  for the mega ones, not multiplied), via `grid_manager.add_score`. Its drop area is tighter than the slots' and checked first, because
   slot 5's margin reaches into it.
 
 ### Audio

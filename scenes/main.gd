@@ -98,9 +98,9 @@ func _on_piece_dropped(was_powerup: bool) -> void:
 	_update_playable()
 	_check_game_over()
 
-# Hourglass power-up: the combo timer runs slower for a while
-func _on_slow_time_used() -> void:
-	timer_manager.slow_down(GameConfig.slow_time_duration, GameConfig.slow_time_factor)
+# Hourglass power-up: the combo timer runs slower (or stops, the mega one) for a while
+func _on_slow_time_used(duration: float, factor: float) -> void:
+	timer_manager.slow_down(duration, factor)
 
 func _on_combo_expired() -> void:
 	GameConfig.current_score_multiplier = 1
@@ -180,6 +180,7 @@ func _save_run() -> void:
 		"multiplier": GameConfig.current_score_multiplier,
 		"combo_time_left": timer_manager.get_time_left(),
 		"slow_time_left": timer_manager.get_slow_time_left(),
+		"slow_time_factor": timer_manager.get_slow_factor(),
 	})
 
 func _restore(saved: Dictionary) -> void:
@@ -197,4 +198,4 @@ func _restore(saved: Dictionary) -> void:
 
 	var slow_left = float(saved.get("slow_time_left", 0.0))
 	if slow_left > 0.0:
-		timer_manager.slow_down(slow_left, GameConfig.slow_time_factor)
+		timer_manager.slow_down(slow_left, float(saved.get("slow_time_factor", GameConfig.slow_time_factor)))
