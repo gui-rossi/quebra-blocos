@@ -211,10 +211,6 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   that were tried (`b` to `b4`). Run `python3 tools/backpack_icons.py assets/ui b5` and rename
   `backpack_option_b5.png` to `backpack.png` to rebuild it. `tools/` has a `.gdignore`, so Godot
   skips it.
-- **The main menu logo** is `scenes/ui/logo.gd`, drawn in code and static: "B", an L piece made of 4 cyan blocks
-  (`BlockVisual` children) for the "L", the backpack sprite for the "O", then "CKPACK", all standing on the same
-  baseline with the same dark outline. It measures itself from the font size and shrinks to fit `max_width` (660px).
-  The `BAG_*` constants say where the bag sits inside `backpack.png`, so the bag lines up rather than the texture.
 - **The app icon** is `assets/icon/icon.png` (`config/icon` in `project.godot`), drawn by `tools/app_icon.py`: variant
   `j2`, a 4x4 board with a cyan L piece dropping into its gap and the b5 backpack releasing a bomb, a star and the
   diamond. It reuses `backpack_icons.py` (imported) and draws the blocks the same way as `block_visual.gd`. The script

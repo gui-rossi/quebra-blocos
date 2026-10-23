@@ -6,12 +6,11 @@ const UiStyle = preload("res://scenes/ui/ui_style.gd")
 const NumberFormat = preload("res://configs/number_format.gd")
 const OptionsPanel = preload("res://scenes/ui/options_panel.gd")
 const Background = preload("res://scenes/ui/background.gd")
-const Logo = preload("res://scenes/ui/logo.gd")
 const GAME_SCENE := "res://scenes/main.tscn"
 
 var _menu: VBoxContainer
 var _options: PanelContainer
-var _title: Control
+var _title: Label
 var _best: Label
 
 func _ready() -> void:
@@ -30,8 +29,7 @@ func _ready() -> void:
 	_menu = UiStyle.vbox(24)
 	holder.add_child(_menu)
 
-	# "B", an L piece, the backpack as the "O", then "CKPACK" (scenes/ui/logo.gd)
-	_title = Logo.new()
+	_title = UiStyle.label("Blockpack", 110, Color(1, 0.9, 0.35), 16)
 	_menu.add_child(_title)
 	_best = UiStyle.label("", 34, UiStyle.TEXT_SOFT)
 	_menu.add_child(_best)
@@ -56,6 +54,7 @@ func _ready() -> void:
 	_options.closed.connect(_show_menu)
 	holder.add_child(_options)
 
+	_animate_title()
 	UiStyle.pop_in(_menu)
 
 # Text built from values (labels holding just a key translate themselves)
@@ -84,6 +83,15 @@ func _show_menu() -> void:
 	_options.visible = false
 	_menu.visible = true
 	UiStyle.pop_in(_menu)
+
+# Slow bob and tilt on the title so the screen doesn't feel static
+func _animate_title() -> void:
+	var tween = _title.create_tween().set_loops()
+	tween.tween_method(func(t: float):
+		_title.pivot_offset = _title.size / 2.0
+		_title.rotation_degrees = sin(t * TAU) * 2.5
+		_title.scale = Vector2.ONE * (1.0 + 0.03 * sin(t * TAU * 2.0))
+	, 0.0, 1.0, 3.0)
 
 func _spacer(height: float) -> Control:
 	var spacer = Control.new()
