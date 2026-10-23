@@ -13,4 +13,4 @@ var slow_time_factor: float = 0.5  # combo timer speed while the hourglass power
 var slow_time_duration: float = 30.0  # real seconds the hourglass lasts
 
 # Score that unlocks each backpack slot (slot 1 is always open). Reaching it once in any game unlocks it for good
-var backpack_unlock_scores: Array[int] = [0, 20000, 50000, 100000, 500000]
+var backpack_unlock_scores: Array[int] = [0, 35000, 100000, 250000, 500000]

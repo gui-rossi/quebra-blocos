@@ -43,7 +43,7 @@ power-ups (bomb, laser, prism, booster, hourglass).
 | `checkpoint-04-music-player` | More public-domain tracks (14 total), a music player in Options (now playing, progress and time, previous and next) |
 | `checkpoint-05-backpack` | Backpack bar with 3 power-up slots (slots 2 and 3 unlock for good at 250K and 750K), compact score numbers (75.3K, 1.25M), music paused when turned off, unused sound controls hidden |
 | `checkpoint-06-languages` | Language support: English, Brazilian Portuguese and Spanish, automatic from the phone's language with a Language option in Options |
-| `checkpoint-07-powerups` | Generic power-up system, new laser / prism / booster / rare hourglass (half-speed combo timer for 30s), smaller bomb (radius 2), 5 backpack slots unlocking at 20K / 50K / 100K / 500K (only from scores reached in a game), at most 1 power-up per tray batch, combo multiplier lasts 15s (was 5s) |
+| `checkpoint-07-powerups` | Generic power-up system, new laser / prism / booster / rare hourglass (half-speed combo timer for 30s), smaller bomb (radius 2), 5 backpack slots unlocking at 35K / 100K / 250K / 500K (only from scores reached in a game), at most 1 power-up per tray batch, combo multiplier lasts 15s (was 5s) |
 
 ## Project layout
 
@@ -152,7 +152,7 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
 
 ### Backpack
 - There are 5 slots (`Backpack.SLOT_COUNT`), and slot 1 is always open. The rest unlock at
-  `GameConfig.backpack_unlock_scores = [0, 20000, 50000, 100000, 500000]`. Reaching a score during a game unlocks
+  `GameConfig.backpack_unlock_scores = [0, 35000, 100000, 250000, 500000]`. Reaching a score during a game unlocks
   that slot for good (`Settings.backpack_slots`, saved as `backpack_slots_v2`). Past best scores don't count, so
   new players always start with 1 open slot.
 - While a tray power-up is dragged, free slots glow. Dropping on one (with some margin around it) stores the power-up
@@ -270,7 +270,7 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
 - **Show it:** the HUD could show the current block value or level (e.g. under the multiplier badge), so players see
   it grow.
 - **Balance:** it combines with the combo multiplier and the planned difficulty curve (bigger pieces later). The
-  backpack unlock scores (20K–500K) may need retuning once scores grow faster.
+  backpack unlock scores (35K–500K) may need retuning once scores grow faster.
 
 ## Known leftovers
 - `randomize_shape()` in `randomized_block.gd` has a testing shortcut that always returns `square_3x3`. Remove it to
