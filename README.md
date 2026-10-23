@@ -61,6 +61,86 @@ godot --headless --export-release "Android" build/blockpack.apk
 
 Builds go in `build/`, which is ignored by git. Never commit the `.exe`, `.apk` or `.aab` files.
 
+## App icon
+
+The icon is original art in `assets/icon/`: a board with a cyan L piece dropping into its gap and the game's backpack
+releasing power-ups (a bomb, a star and the diamond). It's drawn by `tools/app_icon.py`, variant `j2`. Rebuild it with
+`python3 tools/app_icon.py --final assets/icon j2` (takes a few minutes, pure Python).
+
+| File | Size | Used for |
+|---|---|---|
+| `icon.png` | 512×512 | The project icon (`project.godot`), the Windows/desktop icon, and the **Play Store icon upload** |
+| `icon_foreground.png` | 432×432 | Android **adaptive icon foreground** (the artwork, shrunk to stay inside the launcher's mask) |
+| `icon_background.png` | 432×432 | Android **adaptive icon background** (the game's gradient) |
+
+In **Project → Export… → Android → Launcher Icons**, set Main 192×192 to `icon.png`, Adaptive Foreground 432×432 to
+`icon_foreground.png` and Adaptive Background 432×432 to `icon_background.png`. For the `.exe` icon on Windows, Godot
+needs an `.ico` file and rcedit (Editor Settings → Export → Windows); you can convert `icon.png` to `.ico` with any
+image tool.
+
+## Play Store listing
+
+Text ready to paste into the Play Console when the game is released. Google Play has no keyword field: search uses
+the **title, short description and full description** (and reviews), so the search words below are written into the
+descriptions naturally. Don't paste a bare list of keywords or other games' names: Google's metadata policy treats
+that as keyword stuffing and can reject the listing.
+
+### Title (max 30 characters)
+- **Blockpack: Block Puzzle** (23). The game itself is just "Blockpack"; the subtitle is only for the store, so
+  searches for "block puzzle" find it.
+
+### Short description (max 80 characters)
+- English: `Clear lines, chain combos and save power-ups in your backpack!` (62)
+- Português (BR): `Limpe linhas, faça combos e guarde power-ups na sua mochila!` (60)
+- Español: `¡Limpia líneas, encadena combos y guarda potenciadores en tu mochila!` (69)
+
+### Full description (English)
+
+> **Blockpack** is a relaxing yet challenging **block puzzle**. Drag colorful blocks onto the board, fill rows and
+> columns to clear them, and chain clears to grow your **combo multiplier** for huge scores.
+>
+> **Power-ups** make every game different: blow up blocks with the **bomb**, sweep a row and column with the
+> **laser**, clear a whole color with the **prism**, boost your multiplier, or slow down time with the rare
+> **hourglass**. Not the right moment? Keep it in your **backpack** and use it when you need it. Reach higher scores
+> to unlock more backpack slots for good.
+>
+> **Features**
+> - Classic **block puzzle** gameplay: place pieces, clear lines, beat your best score
+> - **Combos and multipliers** that reward clearing lines one after another
+> - 5 **power-ups** and a **backpack** to save them for later
+> - Unlock up to 5 backpack slots as your scores grow
+> - Relaxing **classical music** and satisfying effects
+> - Play **offline**, no internet needed
+> - In English, Portuguese and Spanish
+>
+> A simple, **free puzzle game** to train your brain, a few minutes at a time. How high can you score?
+
+Translate it for the Portuguese and Spanish listings with the same structure, using the search words below.
+
+### Search words to work into the descriptions
+
+| English | Português (BR) | Español |
+|---|---|---|
+| block puzzle | quebra-cabeça de blocos | rompecabezas de bloques |
+| block puzzle game | jogo de blocos | juego de bloques |
+| blocks | blocos | bloques |
+| puzzle game | jogo de quebra-cabeça | juego de puzzle |
+| brain game | jogo de raciocínio | juego de lógica |
+| logic puzzle | quebra-cabeça de lógica | puzzle de lógica |
+| line clear / clear lines | limpar linhas | limpiar líneas |
+| combo | combo | combo |
+| power-ups | power-ups / poderes | potenciadores |
+| grid puzzle | quebra-cabeça em grade | puzzle en cuadrícula |
+| relaxing game | jogo relaxante | juego relajante |
+| offline game | jogo offline | juego sin conexión |
+| free game | jogo grátis | juego gratis |
+| casual game | jogo casual | juego casual |
+| classic puzzle | quebra-cabeça clássico | puzzle clásico |
+| high score | recorde | récord |
+| backpack | mochila | mochila |
+
+**Category:** Puzzle. **Tags** (picked in the Play Console): Block, Puzzle, Casual, Offline, Single player.
+
 ## More
 
 - `CLAUDE.md`: how the project is organized, architecture decisions and plans for the future.

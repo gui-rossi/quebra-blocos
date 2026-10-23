@@ -61,6 +61,7 @@ scenes/
   ui/              menus, HUD widgets, backpack, shared UI styling
 assets/music/  public-domain music tracks + CREDITS.md (source and license of each)
 assets/ui/     UI sprites (backpack icon)
+assets/icon/   app icon: icon.png (512, project + Play Store), adaptive icon foreground and background (432)
 localization/  strings.csv with every visible text in each language
 tools/         asset generator scripts (ignored by Godot)
 ```
@@ -210,6 +211,11 @@ Plain helper scripts (not autoloads) are loaded with `const X = preload(...)`: `
   that were tried (`b` to `b4`). Run `python3 tools/backpack_icons.py assets/ui b5` and rename
   `backpack_option_b5.png` to `backpack.png` to rebuild it. `tools/` has a `.gdignore`, so Godot
   skips it.
+- **The app icon** is `assets/icon/icon.png` (`config/icon` in `project.godot`), drawn by `tools/app_icon.py`: variant
+  `j2`, a 4x4 board with a cyan L piece dropping into its gap and the b5 backpack releasing a bomb, a star and the
+  diamond. It reuses `backpack_icons.py` (imported) and draws the blocks the same way as `block_visual.gd`. The script
+  keeps the other variants that were tried (`i1` to `i3`, `j1`). `--final` writes the 512px icon plus the Android
+  adaptive foreground/background (432px); see the README's App icon section for where they go.
 - **Scores are shown with `NumberFormat.compact()`**: full below 10,000, then 75.3K, 253K, 1.25M. Values are cut
   down, never rounded up.
 
