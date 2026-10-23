@@ -1,11 +1,19 @@
 extends Node2D
 
-# Base for the power-ups drawn in code (laser, prism, booster). Same interface as the bomb scene:
+# Base for the sprite power-ups (laser, prism, booster, hourglass). Same interface as the bomb scene:
 #   fit_to(diameter)  sizes it, start_idle() / stop_idle() for the tray animation,
 #   activate(target)  flies to `target` (global), plays its own flair and frees itself; the grid applies the effect after.
-# Subclasses draw themselves in _draw_icon(radius) and can override _flair().
+# Subclasses set `sprite` (made by tools/powerup_sprites.py, same art style as the backpack) and `halo_color`,
+# and can draw extras on top in _draw_icon() or override _flair().
 
 const INK := Color(0.12, 0.06, 0.04)
+
+# The sprites' artwork fills about this much of their texture, so the texture is drawn bigger than the body
+const SPRITE_CONTENT_RATIO := 0.8
+
+var sprite: Texture2D = null
+var halo_color: Color = Color(1, 1, 1)
+var mega: bool = false  # the mega version (set by ShapeDefinitions.make_powerup_visual, which also adds its aura)
 
 var diameter: float = 64.0  # current body diameter, in local units
 var glow: float = 0.0:  # 0..1, animated while idle
@@ -48,8 +56,15 @@ func _flair() -> void:
 	await tween.finished
 
 func _draw() -> void:
-	_draw_icon(diameter / 2.0)
+	var r = diameter / 2.0
+	# a soft halo that breathes with `glow` while idle
+	draw_circle(Vector2.ZERO, r * (1.0 + 0.12 * glow), Color(halo_color, 0.06 + 0.12 * glow))
+	if sprite:
+		var side = diameter / SPRITE_CONTENT_RATIO
+		draw_texture_rect(sprite, Rect2(Vector2(-side, -side) / 2.0, Vector2(side, side)), false)
+	_draw_icon(r)
 
+# Extras drawn over the sprite (e.g. the booster's "+2")
 func _draw_icon(_radius: float) -> void:
 	pass
 

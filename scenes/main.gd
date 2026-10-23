@@ -38,6 +38,9 @@ func _ready() -> void:
 	$CanvasLayer.add_child(backpack)
 	drag_controller.backpack = backpack
 	grid_manager.score_changed.connect(backpack.update_unlocks)
+	grid_manager.score_target = top_tray.get_score_global_center
+	grid_manager.fragments_launched.connect(top_tray.on_fragments_launched)
+	grid_manager.fragment_arrived.connect(top_tray.on_fragment_arrived)
 
 	top_tray.settings_pressed.connect(_open_pause)
 	top_tray.set_best(Settings.best_score)
@@ -95,9 +98,9 @@ func _on_piece_dropped(was_powerup: bool) -> void:
 	_update_playable()
 	_check_game_over()
 
-# Hourglass power-up: the combo timer runs slower for a while
-func _on_slow_time_used() -> void:
-	timer_manager.slow_down(GameConfig.slow_time_duration, GameConfig.slow_time_factor)
+# Hourglass power-up: the combo timer runs slower (or stops, the mega one) for a while
+func _on_slow_time_used(duration: float, factor: float) -> void:
+	timer_manager.slow_down(duration, factor)
 
 func _on_combo_expired() -> void:
 	GameConfig.current_score_multiplier = 1
@@ -121,18 +124,24 @@ func _play_again() -> void:
 
 # ---------------- Game over ----------------
 
-# Game over when none of the pieces left in the tray fit anywhere and the backpack is empty
+# Game over when none of the shapes left in the tray fit anywhere and there's no power-up left, in the tray or the
+# backpack. A power-up never leaves the game stuck: even one with nowhere to go (a prism on an empty board) can be
+# dropped in the trash can, which uses up its tray slot.
 func _is_game_over() -> bool:
 	if backpack.has_items():
-		return false  # a stored power-up can always be used
+		return false
 	for piece in bottom_tray.get_pieces():
-		if not piece.shape_cells.is_empty() and _can_play(piece):
+		if piece.shape_cells.is_empty():
+			continue
+		if piece.powerup_name != "" or grid_manager.can_fit_anywhere(piece.shape_cells):
 			return false
 	return true
 
-# Power-ups always fit, shapes need a free spot on the board
+# Whether the piece can go on the board right now (shapes need a free spot, the prism needs a block)
 func _can_play(piece: Node2D) -> bool:
-	return piece.powerup_name != "" or grid_manager.can_fit_anywhere(piece.shape_cells)
+	if piece.powerup_name != "":
+		return grid_manager.can_place_powerup_anywhere(piece.powerup_name)
+	return grid_manager.can_fit_anywhere(piece.shape_cells)
 
 # Dims the tray pieces that don't fit anywhere right now
 func _update_playable() -> void:
@@ -171,6 +180,7 @@ func _save_run() -> void:
 		"multiplier": GameConfig.current_score_multiplier,
 		"combo_time_left": timer_manager.get_time_left(),
 		"slow_time_left": timer_manager.get_slow_time_left(),
+		"slow_time_factor": timer_manager.get_slow_factor(),
 	})
 
 func _restore(saved: Dictionary) -> void:
@@ -179,7 +189,7 @@ func _restore(saved: Dictionary) -> void:
 	backpack.restore(saved.get("backpack", []))
 	grid_manager.set_score(int(saved.get("score", 0)))
 
-	var multiplier = int(saved.get("multiplier", 1))
+	var multiplier = mini(int(saved.get("multiplier", 1)), GameConfig.max_score_multiplier)
 	var time_left = float(saved.get("combo_time_left", 0.0))
 	if multiplier > 1 and time_left > 0.0:
 		GameConfig.current_score_multiplier = multiplier
@@ -188,4 +198,4 @@ func _restore(saved: Dictionary) -> void:
 
 	var slow_left = float(saved.get("slow_time_left", 0.0))
 	if slow_left > 0.0:
-		timer_manager.slow_down(slow_left, GameConfig.slow_time_factor)
+		timer_manager.slow_down(slow_left, float(saved.get("slow_time_factor", GameConfig.slow_time_factor)))

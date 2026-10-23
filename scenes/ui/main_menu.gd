@@ -29,7 +29,7 @@ func _ready() -> void:
 	_menu = UiStyle.vbox(24)
 	holder.add_child(_menu)
 
-	_title = UiStyle.label("Quebra\nBlocos", 110, Color(1, 0.9, 0.35), 16)
+	_title = UiStyle.label("Blockpack", 110, Color(1, 0.9, 0.35), 16)
 	_menu.add_child(_title)
 	_best = UiStyle.label("", 34, UiStyle.TEXT_SOFT)
 	_menu.add_child(_best)

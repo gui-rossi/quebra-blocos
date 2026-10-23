@@ -3,6 +3,8 @@ extends Node2D
 const BLOCK_SPACE_SCENE: PackedScene = preload("res://scenes/blocks/block_space.tscn")
 const Palette = preload("res://configs/palette.gd")
 
+const MERGE_GLOW := Color(1.0, 0.82, 0.3)  # ring while a power-up of the same type is dragged (same as the backpack's)
+
 @onready var circle_sprite: Sprite2D = $Sprite2D
 @onready var shape_container: Node2D = $ShapeContainer
 
@@ -24,9 +26,27 @@ var body_size: float = 0.0  # width of its body, in the shape container's local 
 var container_rest_scale: Vector2 = Vector2.ONE
 var container_rest_position: Vector2 = Vector2.ZERO  # where the container sits when it's back in the slot
 
+# Merging: the same power-up dragged onto this one makes its mega version
+var merge_ready: bool = false:  # a power-up it can merge with is being dragged: the ring pulses
+	set(value):
+		merge_ready = value
+		set_process(value)
+		queue_redraw()
+var merge_hovered: bool = false:  # ...and it's right over this slot: the ring lights up
+	set(value):
+		if merge_hovered != value:
+			merge_hovered = value
+			queue_redraw()
+var _pulse: float = 0.0
+
 func _ready() -> void:
 	# the circle texture is only kept for sizing and touch detection, _draw paints the slot
 	circle_sprite.visible = false
+	set_process(false)
+
+func _process(delta: float) -> void:
+	_pulse += delta
+	queue_redraw()
 
 # Soft round slot under the piece, fainter once its piece has been used
 func _draw() -> void:
@@ -38,6 +58,10 @@ func _draw() -> void:
 	var strength = 1.0 if not shape_cells.is_empty() else 0.5
 	draw_circle(center, radius, Color(Palette.SLOT_FILL, Palette.SLOT_FILL.a * strength))
 	draw_arc(center, radius, 0.0, TAU, 96, Color(Palette.SLOT_RING, Palette.SLOT_RING.a * strength), 3.0, true)
+	if merge_hovered:
+		draw_arc(center, radius, 0.0, TAU, 96, MERGE_GLOW, 6.0, true)
+	elif merge_ready:
+		draw_arc(center, radius, 0.0, TAU, 96, Color(MERGE_GLOW, 0.45 + 0.4 * (0.5 + 0.5 * sin(_pulse * 7.0))), 4.0, true)
 
 # Dims the piece when it can't fit anywhere on the board
 func set_playable(playable: bool) -> void:
@@ -153,6 +177,15 @@ func _build_powerup(k: float) -> void:
 # How much this slot is scaled up on screen (set by the bottom tray's scale_randomized_blocks)
 func _screen_scale() -> float:
 	return maxf(get_global_transform().get_scale().x, 0.001)
+
+# Turns the power-up into `key` (its mega version, after a merge) with a little pop
+func upgrade_powerup(key: String) -> void:
+	_apply_powerup(key)
+	build_piece()
+	shape_container.scale = container_rest_scale * 0.6
+	var tween = create_tween()
+	tween.tween_property(shape_container, "scale", container_rest_scale * 1.15, 0.12).set_ease(Tween.EASE_OUT)
+	tween.tween_property(shape_container, "scale", container_rest_scale, 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 # Hands the power-up's drawing over (to the grid, to play its effect) - this piece no longer holds a power-up
 func take_powerup() -> Node2D:

@@ -7,7 +7,7 @@ signal combo_expired
 signal update_combo_timer(time_left: float, total: float)
 signal slow_time_changed(active: bool)  # the hourglass power-up started or wore off
 
-@export var combo_reset_time: float = 5.0
+@export var combo_reset_time: float = 15.0  # seconds the multiplier lasts after each cleared line
 
 var _time_left: float = 0.0
 var _running: bool = false
@@ -26,17 +26,21 @@ func start_combo_timer(time_left: float = -1.0) -> void:
 func get_time_left() -> float:
 	return _time_left if _running else 0.0
 
-# The combo timer runs at `factor` speed for the next `duration` real seconds (used again, it restarts)
+# The combo timer runs at `factor` speed for the next `duration` real seconds (0 stops it). Used while another
+# slow-down is still on, the stronger factor and the longer time left win
 func slow_down(duration: float, factor: float) -> void:
 	var was_slow = _slow_time_left > 0.0
-	_slow_time_left = duration
-	_slow_factor = factor
+	_slow_time_left = maxf(_slow_time_left, duration) if was_slow else duration
+	_slow_factor = minf(_slow_factor, factor) if was_slow else factor
 	set_process(true)
 	if not was_slow:
 		slow_time_changed.emit(true)
 
 func get_slow_time_left() -> float:
 	return maxf(_slow_time_left, 0.0)
+
+func get_slow_factor() -> float:
+	return _slow_factor
 
 func _process(delta: float) -> void:
 	var speed = 1.0

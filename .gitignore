@@ -4,3 +4,6 @@
 
 # Exported builds (.exe, .apk, .aab)
 /build/
+
+# Python bytecode from the asset tools
+__pycache__/

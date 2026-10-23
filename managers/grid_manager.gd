@@ -3,10 +3,13 @@ extends Node2D
 signal score_changed(new_score: int)
 signal combo_changed(new_multiplier: int)
 signal start_combo_timer()
-signal slow_time_used()  # the hourglass was dropped (main.gd slows the combo timer)
+signal slow_time_used(duration: float, factor: float)  # an hourglass was dropped (main.gd slows the combo timer)
+signal fragments_launched(count: int)  # broken blocks' fragments about to fly to the score (sent before the score changes)
+signal fragment_arrived()  # one of them reached the score number
 signal powerup_finished()  # a power-up's effect is done and the cells it cleared are free
 
 var score: int = 0
+var score_target: Callable  # returns the score number's global position; broken blocks' fragments fly there
 
 @export var MAX_COLUMNS: = 10
 @export var MAX_ROWS: = 12
@@ -17,6 +20,7 @@ const BLOCK_SPACE_SCENE: PackedScene = preload("res://scenes/blocks/block_space.
 const ExplosionEffect = preload("res://scenes/powerups/explosion_effect.gd")
 const EXPLOSION_SOUND: AudioStream = preload("res://scenes/powerups/bomb_explosion.wav")
 const BlockBurst = preload("res://scenes/effects/block_burst.gd")
+const ScoreFragments = preload("res://scenes/effects/score_fragments.gd")
 const FloatingText = preload("res://scenes/effects/floating_text.gd")
 const Palette = preload("res://configs/palette.gd")
 const NumberFormat = preload("res://configs/number_format.gd")
@@ -249,31 +253,74 @@ func get_powerup_area(key: String, col: int, row: int) -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
 	if not is_in_grid(col, row):
 		return cells
-	match key:
+	var mega = ShapeDefinitions.is_mega(key)
+	match ShapeDefinitions.get_effect(key):
 		"bomb":
-			cells = get_bomb_area(col, row)
+			cells = get_bomb_area(col, row, GameConfig.mega_bomb_radius if mega else GameConfig.bomb_radius)
 		"laser":
-			for c in range(MAX_COLUMNS):
-				cells.append(Vector2i(c, row))
+			# its rows across and its columns down (one of each, or mega_laser_width centered on the cell)
+			var half = GameConfig.mega_laser_width / 2 if mega else 0
 			for r in range(MAX_ROWS):
-				if r != row:
-					cells.append(Vector2i(col, r))
+				for c in range(MAX_COLUMNS):
+					if absi(r - row) <= half or absi(c - col) <= half:
+						cells.append(Vector2i(c, r))
 		"prism":
 			var target = grid_data[row][col]
 			if target:
+				var colors = [target.block_color]
+				if mega:
+					var second = _most_common_color_besides(target.block_color)
+					if second != null:
+						colors.append(second)
 				for r in range(MAX_ROWS):
 					for c in range(MAX_COLUMNS):
 						var tile = grid_data[r][c]
-						if tile and _same_color(tile.block_color, target.block_color):
+						if tile and colors.any(func(color): return _same_color(tile.block_color, color)):
 							cells.append(Vector2i(c, r))
 		"booster", "hourglass":
 			cells.append(Vector2i(col, row))
 	return cells
 
+# The color with the most blocks on the board, not counting `excluded` (null if there's no other color)
+func _most_common_color_besides(excluded: Color):
+	var colors: Array = []
+	var counts: Array[int] = []
+	for r in range(MAX_ROWS):
+		for c in range(MAX_COLUMNS):
+			var tile = grid_data[r][c]
+			if tile == null or _same_color(tile.block_color, excluded):
+				continue
+			var index = colors.find_custom(func(color): return _same_color(color, tile.block_color))
+			if index == -1:
+				colors.append(tile.block_color)
+				counts.append(1)
+			else:
+				counts[index] += 1
+	if colors.is_empty():
+		return null
+	return colors[counts.find(counts.max())]
+
+# Whether the power-up has somewhere to go on the board right now (the prism needs at least one block)
+func can_place_powerup_anywhere(key: String) -> bool:
+	if ShapeDefinitions.get_effect(key) != "prism":
+		return true
+	for r in range(MAX_ROWS):
+		for c in range(MAX_COLUMNS):
+			if grid_data[r][c] != null:
+				return true
+	return false
+
+# Points that don't come from clearing blocks (e.g. a power-up dropped in the trash can)
+func add_score(points: int) -> void:
+	if points <= 0:
+		return
+	score += points
+	score_changed.emit(score)
+
 func can_place_powerup(key: String, col: int, row: int) -> bool:
 	if not is_in_grid(col, row):
 		return false
-	if key == "prism":
+	if ShapeDefinitions.get_effect(key) == "prism":
 		return grid_data[row][col] != null  # it needs a block to take the color from
 	return true  # the others go over anything
 
@@ -281,28 +328,36 @@ func can_place_powerup(key: String, col: int, row: int) -> bool:
 func activate_powerup(key: String, visual: Node2D, col: int, row: int) -> void:
 	var cell = Vector2i(col, row)
 	var area = get_powerup_area(key, col, row)  # decided at drop time
+	var mega = ShapeDefinitions.is_mega(key)
+	var bonus = GameConfig.mega_score_bonus if mega else 1  # blocks broken by a mega one score this many times more
 	visual.reparent(self, true)
 	await visual.activate(to_global(cell_to_local_center(cell)))
-	match key:
+	match ShapeDefinitions.get_effect(key):
 		"bomb":
-			explode_at(col, row)
+			explode_at(col, row, GameConfig.mega_bomb_radius if mega else GameConfig.bomb_radius, bonus)
 		"laser":
-			_fire_laser(cell, area)
+			_fire_laser(cell, area, GameConfig.mega_laser_width if mega else 1, bonus)
 		"prism":
-			_clear_color(cell, area)
+			_clear_color(cell, area, bonus)
 		"booster":
-			_boost(cell)
+			_boost(cell, GameConfig.mega_booster_multiplier if mega else GameConfig.booster_multiplier)
 		"hourglass":
-			slow_time_used.emit()
-			_spawn_floating_text(tr("POWERUP_SLOW_TIME"), cell_to_local_center(cell), Color(0.6, 0.85, 1.0), 44)
-			Sfx.play("combo_up", 0.7)
-			Settings.vibrate(30)
+			if mega:
+				slow_time_used.emit(GameConfig.mega_slow_time_duration, GameConfig.mega_slow_time_factor)
+				_spawn_floating_text(tr("POWERUP_TIME_STOPPED"), cell_to_local_center(cell), Color(0.6, 0.85, 1.0), 52)
+			else:
+				slow_time_used.emit(GameConfig.slow_time_duration, GameConfig.slow_time_factor)
+				_spawn_floating_text(tr("POWERUP_SLOW_TIME"), cell_to_local_center(cell), Color(0.6, 0.85, 1.0), 44)
+			Sfx.play("combo_up", 0.55 if mega else 0.7)
+			Settings.vibrate(50 if mega else 30)
+	if bonus > 1:
+		# floats up a little above the effect's own text
+		_spawn_floating_text(tr("POWERUP_MEGA_BONUS") % bonus, cell_to_local_center(cell) - Vector2(0, cell_size * 0.9), Color(1.0, 0.82, 0.3), 48)
 	powerup_finished.emit()
 
 # Cells inside the blast circle: every cell whose center is within radius + 0.5 of the bomb's cell,
 # so radius 1 = 3x3, radius 2 = 5x5 without the corners, radius 4 = 9x9 with rounded corners
-func get_bomb_area(center_col: int, center_row: int) -> Array[Vector2i]:
-	var radius = GameConfig.bomb_radius
+func get_bomb_area(center_col: int, center_row: int, radius: int) -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
 	for dy in range(-radius, radius + 1):
 		for dx in range(-radius, radius + 1):
@@ -314,43 +369,45 @@ func get_bomb_area(center_col: int, center_row: int) -> Array[Vector2i]:
 				cells.append(Vector2i(c, r))
 	return cells
 
-func explode_at(center_col: int, center_row: int) -> void:
+func explode_at(center_col: int, center_row: int, radius: int, score_bonus: int = 1) -> void:
 	var center = Vector2i(center_col, center_row)
-	_destroy_cells(get_bomb_area(center_col, center_row), center, 0.05)
+	_destroy_cells(get_bomb_area(center_col, center_row, radius), center, 0.05, score_bonus)
 
-	_spawn_explosion(center)
-	_shake(cell_size * 0.04 * (GameConfig.bomb_radius + 1))  # bigger blasts shake harder
-	Settings.vibrate(40)
+	_spawn_explosion(center, radius)
+	_shake(cell_size * 0.04 * (radius + 1))  # bigger blasts shake harder
+	Settings.vibrate(40 + 10 * (radius - GameConfig.bomb_radius))
 	_explosion_player.pitch_scale = randf_range(0.9, 1.1)  # so repeated blasts don't sound identical
 	_explosion_player.play()
 
-# Laser: beams along the row and the column, the blocks break outwards from the target
-func _fire_laser(cell: Vector2i, area: Array) -> void:
-	_flash_line(Vector2(0, cell.y), Vector2(MAX_COLUMNS, 1), LASER_COLOR)
-	_flash_line(Vector2(cell.x, 0), Vector2(1, MAX_ROWS), LASER_COLOR)
-	_destroy_cells(area, cell, 0.03)
-	_shake(cell_size * 0.06)
+# Laser: beams along the row and the column (`width` of each, centered on the target), the blocks break outwards
+func _fire_laser(cell: Vector2i, area: Array, width: int = 1, score_bonus: int = 1) -> void:
+	var half = width / 2
+	_flash_line(Vector2(0, cell.y - half), Vector2(MAX_COLUMNS, width), LASER_COLOR)
+	_flash_line(Vector2(cell.x - half, 0), Vector2(width, MAX_ROWS), LASER_COLOR)
+	_destroy_cells(area, cell, 0.03, score_bonus)
+	_shake(cell_size * 0.06 * width)
 	Sfx.play("laser")
 	Settings.vibrate(30)
 
 # Prism: every block of the target's color breaks, rippling out from the target
-func _clear_color(cell: Vector2i, area: Array) -> void:
-	_destroy_cells(area, cell, 0.035)
+func _clear_color(cell: Vector2i, area: Array, score_bonus: int = 1) -> void:
+	_destroy_cells(area, cell, 0.035, score_bonus)
 	_spawn_floating_text("+%d" % area.size(), cell_to_local_center(cell), Color.WHITE, 40)
 	Sfx.play("line_clear", 1.5)
 	Settings.vibrate(30)
 
-# Booster: the multiplier goes up and the combo timer refills
-func _boost(cell: Vector2i) -> void:
-	GameConfig.current_score_multiplier += GameConfig.booster_multiplier
+# Booster: the multiplier goes up by `amount` and the combo timer refills
+func _boost(cell: Vector2i, amount: int) -> void:
+	GameConfig.current_score_multiplier = mini(GameConfig.current_score_multiplier + amount, GameConfig.max_score_multiplier)
 	combo_changed.emit(GameConfig.current_score_multiplier)
 	start_combo_timer.emit()
-	_spawn_floating_text(tr("POWERUP_BOOSTER") % GameConfig.booster_multiplier, cell_to_local_center(cell), Color(1, 0.85, 0.3), 44)
+	_spawn_floating_text(tr("POWERUP_BOOSTER") % amount, cell_to_local_center(cell), Color(1, 0.85, 0.3), 44)
 	Sfx.play("combo_up", 1.3)
 	Settings.vibrate(30)
 
 # Breaks the blocks in `cells` (empty ones are skipped) with a wave from `center`, and scores them
-func _destroy_cells(cells: Array, center: Vector2i, delay_per_cell: float) -> int:
+# (`score_bonus` times more for a mega power-up)
+func _destroy_cells(cells: Array, center: Vector2i, delay_per_cell: float, score_bonus: int = 1) -> int:
 	var destroyed := 0
 	for cell in cells:
 		var tile = grid_data[cell.y][cell.x]
@@ -361,7 +418,7 @@ func _destroy_cells(cells: Array, center: Vector2i, delay_per_cell: float) -> in
 		destroyed += 1
 		_animate_tile_destroyed(tile, Vector2(cell - center).length() * delay_per_cell)
 	if destroyed > 0:
-		score += destroyed * GameConfig.points_per_block * GameConfig.current_score_multiplier
+		score += destroyed * GameConfig.points_per_block * GameConfig.current_score_multiplier * score_bonus
 		score_changed.emit(score)
 	return destroyed
 
@@ -376,19 +433,25 @@ func _animate_tile_destroyed(tile: Node2D, delay: float) -> void:
 	var color: Color = tile.block_color
 	var tile_center = tile.position + control.size / 2.0
 
+	# the fragments are counted now, before the score changes, so the HUD knows to wait for them
+	var fragments := 0
+	if score_target.is_valid():
+		fragments = ScoreFragments.fragment_count()
+		fragments_launched.emit(fragments)
+
 	var tween = tile.create_tween()
 	tween.tween_interval(delay)
-	tween.tween_callback(_spawn_burst.bind(tile_center, color, 14, 1.0))
+	tween.tween_callback(_spawn_break.bind(tile_center, color, fragments))
 	tween.tween_property(tile, "modulate", Color(1.6, 1.6, 1.6), 0.06)  # flashes bright before breaking
 	tween.parallel().tween_property(control, "scale", Vector2(1.2, 1.2), 0.06)
 	tween.tween_property(control, "scale", Vector2.ZERO, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 	tween.parallel().tween_property(tile, "modulate:a", 0.0, 0.2)
 	tween.tween_callback(tile.queue_free)
 
-func _spawn_explosion(center: Vector2i) -> void:
+func _spawn_explosion(center: Vector2i, radius: int) -> void:
 	var effect = ExplosionEffect.new()
 	effect.position = cell_to_local_center(center)
-	effect.max_radius = (GameConfig.bomb_radius + 0.5) * cell_size
+	effect.max_radius = (radius + 0.5) * cell_size
 	add_child(effect)
 	effect.play()
 
@@ -404,6 +467,22 @@ func _animate_tile_placed(tile: Node2D, delay: float) -> void:
 	tween.tween_property(control, "scale", Vector2(0.94, 0.94), 0.07).set_ease(Tween.EASE_IN)
 	tween.parallel().tween_property(tile, "modulate", Color.WHITE, 0.18)
 	tween.tween_property(control, "scale", Vector2.ONE, 0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+# A broken block's fragments: they fall for a moment, then fly into the score number (score_target, set by main.gd).
+# Falls back to a plain burst if there's nowhere to fly to.
+func _spawn_break(local_position: Vector2, color: Color, count: int) -> void:
+	if count <= 0:
+		_spawn_burst(local_position, color, 14, 1.0)
+		return
+	var fragments = ScoreFragments.new()
+	fragments.position = local_position
+	fragments.color = color
+	fragments.size = cell_size
+	fragments.amount = count
+	fragments.target = score_target.call()
+	fragments.arrived = fragment_arrived.emit
+	add_child(fragments)
+	fragments.play()
 
 func _spawn_burst(local_position: Vector2, color: Color, amount: int, speed: float) -> void:
 	var burst = BlockBurst.new()
@@ -552,6 +631,6 @@ func _draw() -> void:
 	draw_style_box(panel, board)
 
 func cleared_row_or_column() -> void:
-	GameConfig.current_score_multiplier += 1
+	GameConfig.current_score_multiplier = mini(GameConfig.current_score_multiplier + 1, GameConfig.max_score_multiplier)
 	combo_changed.emit(GameConfig.current_score_multiplier)
 	start_combo_timer.emit()

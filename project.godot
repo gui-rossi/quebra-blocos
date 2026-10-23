@@ -10,10 +10,10 @@ config_version=5
 
 [application]
 
-config/name="quebra-blocos"
+config/name="Blockpack"
 run/main_scene="res://scenes/ui/main_menu.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
-config/icon="res://icon.svg"
+config/icon="res://assets/icon/icon.png"
 
 [autoload]
 

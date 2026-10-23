@@ -35,6 +35,23 @@ func _input(event: InputEvent) -> void:
 			dragging_container.global_position = event.position
 			_touch_position = event.position
 
+			# any power-up over the trash can: open its lid instead of highlighting the grid
+			if _is_dragging_powerup():
+				var over_trash = backpack.trash_at(event.position)
+				backpack.set_trash_hover(over_trash)
+				if over_trash:
+					_set_merge_hover(null)  # clears the backpack's hovered slot too
+					grid_manager.clear_highlight()
+					return
+
+			# a power-up over another one of the same type (tray or backpack): light that one up, they'd merge
+			if _can_merge_dragged():
+				var target = _merge_target_at(event.position)
+				_set_merge_hover(target)
+				if target:
+					grid_manager.clear_highlight()
+					return
+
 			# a power-up from the tray over a free backpack slot: highlight the slot instead of the grid
 			if _can_store_dragged():
 				var slot = backpack.free_slot_at(event.position)
@@ -66,21 +83,30 @@ func _get_origin_cell() -> Vector2i:
 	return raw_cell - drag_shape_half
 
 func _try_start_drag(pos: Vector2) -> void:
-	var pieces = [bottom_tray.randomized_block_1, bottom_tray.randomized_block_2, bottom_tray.randomized_block_3]
-	for piece in pieces:
+	var piece = _tray_piece_at(pos)
+	if piece:
+		_start_drag(piece, pos)
+		return
+
+	if backpack:
+		var slot = backpack.filled_slot_at(pos)
+		if slot:
+			_start_drag(slot, pos)
+
+# The tray piece (not used yet) whose circle is under `pos`, or null
+func _tray_piece_at(pos: Vector2) -> Node2D:
+	for piece in _tray_pieces():
 		if piece.shape_cells.is_empty():
 			continue  # already used, nothing to drag
 
 		var circle_sprite: Sprite2D = piece.get_node("Sprite2D")
 		var radius = (circle_sprite.texture.get_size().x / 2.0) * piece.scale.x
 		if pos.distance_to(piece.global_position) <= radius:
-			_start_drag(piece, pos)
-			return
+			return piece
+	return null
 
-	if backpack:
-		var slot = backpack.filled_slot_at(pos)
-		if slot:
-			_start_drag(slot, pos)
+func _tray_pieces() -> Array:
+	return [bottom_tray.randomized_block_1, bottom_tray.randomized_block_2, bottom_tray.randomized_block_3]
 
 func _start_drag(piece: CanvasItem, touch_position: Vector2) -> void:
 	dragging_piece = piece
@@ -105,6 +131,10 @@ func _start_drag(piece: CanvasItem, touch_position: Vector2) -> void:
 
 	if _can_store_dragged():
 		backpack.set_accepting(true)
+	if _is_dragging_powerup():
+		backpack.set_trash_accepting(true)
+	if _can_merge_dragged():
+		_set_merge_ready(true)  # after set_accepting, which only lights up the free slots
 
 func _end_drag() -> void:
 	var container = dragging_container
@@ -114,6 +144,24 @@ func _end_drag() -> void:
 	if _drag_scale_tween:
 		_drag_scale_tween.kill()
 		_drag_scale_tween = null
+
+	if _is_dragging_powerup():
+		var over_trash = backpack.trash_at(_touch_position)
+		backpack.set_trash_accepting(false)
+		if over_trash:
+			backpack.set_accepting(false)
+			_set_merge_ready(false)
+			_trash_dragged(container, piece)
+			return
+
+	if _can_merge_dragged():
+		var target = _merge_target_at(_touch_position)
+		_set_merge_ready(false)
+		if target:
+			if backpack:
+				backpack.set_accepting(false)
+			_merge_into(container, piece, target)
+			return
 
 	if _can_store_dragged():
 		var slot = backpack.free_slot_at(_touch_position)
@@ -159,12 +207,40 @@ func cancel_drag() -> void:
 	if _drag_scale_tween:
 		_drag_scale_tween.kill()
 		_drag_scale_tween = null
+	if _can_merge_dragged():
+		_set_merge_ready(false)
 	if backpack:
 		backpack.set_accepting(false)
+		backpack.set_trash_accepting(false)
 	_return_container(dragging_container, dragging_piece)
 	grid_manager.clear_highlight()
 	dragging_container = null
 	dragging_piece = null
+
+# Any power-up, from the tray or the backpack, can be dropped in the trash can
+func _is_dragging_powerup() -> bool:
+	return backpack != null and dragging_piece != null and dragging_piece.powerup_name != ""
+
+# Throws the dragged power-up away for its trash score. Its tray slot or backpack slot is used up, like placing it,
+# so a power-up with nowhere to go on the board (a prism on an empty board) can never leave the game stuck.
+func _trash_dragged(container: Node2D, piece: CanvasItem) -> void:
+	var points = ShapeDefinitions.get_trash_score(piece.powerup_name)
+	piece.take_powerup()
+	for child in container.get_children():
+		child.queue_free()
+	_return_container(container, piece)
+	piece.shape_cells = []
+
+	grid_manager.clear_highlight()
+	dragging_container = null
+	dragging_piece = null
+
+	grid_manager.add_score(points)
+	backpack.trashed(points)
+	Sfx.play("place", 0.7)
+	Settings.vibrate(15)
+	bottom_tray.check_and_respawn_if_needed()
+	piece_dropped.emit(false)
 
 # A power-up dragged from the tray (not one already in the backpack) can be dropped in a backpack slot
 func _can_store_dragged() -> bool:
@@ -187,6 +263,74 @@ func _store_in_backpack(container: Node2D, piece: CanvasItem, slot: Control) -> 
 
 	Sfx.play("place", 1.2)
 	Settings.vibrate(10)
+	bottom_tray.check_and_respawn_if_needed()
+	piece_dropped.emit(false)
+
+# ---------------- Merging ----------------
+
+# A power-up that has a mega version can be dropped on another one of the same type, in the tray or the backpack
+func _can_merge_dragged() -> bool:
+	return dragging_piece != null and ShapeDefinitions.get_merge_result(dragging_piece.powerup_name) != ""
+
+# The tray piece or backpack slot under `pos` holding the same power-up as the dragged one, or null
+func _merge_target_at(pos: Vector2) -> CanvasItem:
+	var key: String = dragging_piece.powerup_name
+	var piece = _tray_piece_at(pos)
+	if piece and piece != dragging_piece and piece.powerup_name == key:
+		return piece
+	if backpack:
+		return backpack.slot_with_at(key, pos, dragging_piece)
+	return null
+
+# The tray pieces and backpack slots the dragged power-up can merge with pulse (on) or go back to normal (off)
+func _set_merge_ready(on: bool) -> void:
+	var key: String = dragging_piece.powerup_name if dragging_piece else ""
+	for piece in _tray_pieces():
+		piece.merge_ready = on and piece != dragging_piece and piece.powerup_name == key
+		piece.merge_hovered = false
+	if backpack:
+		if on:
+			backpack.set_merge_ready(key, dragging_piece)
+		else:
+			backpack.set_accepting(false)
+
+func _set_merge_hover(target: CanvasItem) -> void:
+	for piece in _tray_pieces():
+		piece.merge_hovered = piece == target
+	if backpack:
+		backpack.set_hover(target if target != null and target.get("is_backpack_slot") == true else null)
+
+# Merges the dragged power-up into `target` (same type): the target becomes the mega version and the dragged one is
+# used up, like placing it. Its drawing flies into the target and fades.
+func _merge_into(container: Node2D, piece: CanvasItem, target: CanvasItem) -> void:
+	var mega_key = ShapeDefinitions.get_merge_result(piece.powerup_name)
+	var target_position: Vector2 = target.powerup_visual.global_position if target.powerup_visual else target.global_position
+
+	var visual = piece.take_powerup()
+	if visual:
+		visual.reparent(drag_layer, true)
+		visual.stop_idle()
+		var tween = visual.create_tween().set_parallel()
+		tween.tween_property(visual, "global_position", target_position, 0.15).set_ease(Tween.EASE_IN)
+		tween.tween_property(visual, "scale", visual.scale * 0.5, 0.15)
+		tween.tween_property(visual, "modulate", Color(2, 2, 2, 0), 0.15)
+		tween.chain().tween_callback(visual.queue_free)
+	for child in container.get_children():
+		child.queue_free()
+	_return_container(container, piece)
+	piece.shape_cells = []
+
+	if target.get("is_backpack_slot") == true:
+		target.store(mega_key)
+	else:
+		target.upgrade_powerup(mega_key)
+
+	grid_manager.clear_highlight()
+	dragging_container = null
+	dragging_piece = null
+
+	Sfx.play("combo_up", 1.6)
+	Settings.vibrate(25)
 	bottom_tray.check_and_respawn_if_needed()
 	piece_dropped.emit(false)
 

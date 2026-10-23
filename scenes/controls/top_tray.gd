@@ -7,10 +7,12 @@ signal settings_pressed
 
 const GearButton = preload("res://scenes/ui/gear_button.gd")
 const ComboBadge = preload("res://scenes/ui/combo_badge.gd")
+const CrownIcon = preload("res://scenes/ui/crown_icon.gd")
 const NumberFormat = preload("res://configs/number_format.gd")
 
 const HUD_ITEM_RATIO := 0.78  # gear and badge size, relative to the tray's height
 const HUD_ITEM_MAX := 100.0
+const BEST_FONT_SIZE := 22
 const SIDE_MARGIN := 20.0  # used until main.gd lines the sides up with the board
 
 const COMBO_SOUND_COOLDOWN_MS := 150  # two lines cleared at once bump the multiplier twice, play the sound once
@@ -26,6 +28,10 @@ var _score_tween: Tween
 var _punch_tween: Tween
 var _last_combo_sound_ms: int = 0
 var _best_value: int = 0
+var _target_score: int = 0  # the real score; the number shown can lag behind while fragments are flying in
+var _fragments_in_flight: int = 0
+var _last_arrival_punch_ms: int = 0
+var _flight_id: int = 0  # bumped on every launch and arrival, for the catch-up below
 var _side_left: float = -1.0  # x where the gear starts, -1 = use SIDE_MARGIN
 var _side_right: float = -1.0  # x where the badge ends, -1 = use SIDE_MARGIN
 
@@ -39,9 +45,20 @@ func _ready() -> void:
 	score_box.add_theme_constant_override("separation", -8)
 	score_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_score_label = _make_label("0", 60, Color.WHITE, 10)
-	_best_label = _make_label("", 22, Color(1, 1, 1, 0.65), 4)
+	_best_label = _make_label("", BEST_FONT_SIZE, Color(1, 1, 1, 0.65), 4)
 	score_box.add_child(_score_label)
-	score_box.add_child(_best_label)
+
+	# a small crown to the left of the best score, so the record reads at a glance in any language
+	var best_row = HBoxContainer.new()
+	best_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	best_row.add_theme_constant_override("separation", 6)
+	best_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var crown = CrownIcon.new()
+	crown.custom_minimum_size = Vector2(BEST_FONT_SIZE * 1.25, BEST_FONT_SIZE * 1.0)
+	crown.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	best_row.add_child(crown)
+	best_row.add_child(_best_label)
+	score_box.add_child(best_row)
 	control.add_child(score_box)
 	score_box.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
 	score_box.grow_horizontal = Control.GROW_DIRECTION_BOTH  # stays centered as the number gets wider
@@ -76,6 +93,11 @@ func _layout_sides() -> void:
 	_badge.position = Vector2(right - item, top)
 
 func set_score(new_score: int) -> void:
+	_target_score = new_score
+	# broken blocks are on their way: the number goes up as they land (on_fragment_arrived) instead of right away
+	if _fragments_in_flight > 0:
+		return
+
 	var gained = new_score > int(_displayed_score)
 
 	# count up to the new score instead of jumping
@@ -86,6 +108,40 @@ func set_score(new_score: int) -> void:
 
 	if gained:
 		_punch_score()
+
+# Fragments from broken blocks are about to fly in (sent before the score changes)
+func on_fragments_launched(count: int) -> void:
+	_fragments_in_flight += count
+	_catch_up_later()
+
+# One fragment landed: show its share of the points still waiting, all of them with the last one
+func on_fragment_arrived() -> void:
+	_fragments_in_flight = maxi(0, _fragments_in_flight - 1)
+	_catch_up_later()
+	if _score_tween:
+		_score_tween.kill()
+	var waiting = _target_score - _displayed_score
+	var share = waiting if _fragments_in_flight == 0 else waiting / float(_fragments_in_flight + 1)
+	_show_score(_displayed_score + share)
+
+	# a small punch, at most every few frames so a stream of fragments doesn't make it shake
+	var now = Time.get_ticks_msec()
+	if waiting > 0.0 and now - _last_arrival_punch_ms > 90:
+		_last_arrival_punch_ms = now
+		_punch_score()
+
+# Safety net: if nothing lands for a while (a fragment that never arrived), stop waiting and show the real score
+func _catch_up_later() -> void:
+	_flight_id += 1
+	var id = _flight_id
+	await get_tree().create_timer(2.5, false).timeout
+	if id == _flight_id and _fragments_in_flight > 0:
+		_fragments_in_flight = 0
+		set_score(_target_score)
+
+# Where the score number is on screen (broken blocks' fragments fly here)
+func get_score_global_center() -> Vector2:
+	return _score_label.get_global_rect().get_center()
 
 func set_best(best: int) -> void:
 	_best_value = best
